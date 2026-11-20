@@ -5,7 +5,7 @@ import { prisma } from '@/lib/prisma'
 import { verifyPassword } from '@/lib/auth/password'
 import { createSession, deleteSession } from '@/lib/auth/session'
 import { maxPasswordLength, minPasswordLength } from '@/lib/src/constants'
-import type { Response } from '@/types'
+import type { Response, User } from '@/types'
 
 const loginSchema = z.object({
     email: z.email('Geçerli bir email girin'),
@@ -17,6 +17,7 @@ const loginSchema = z.object({
 
 type LoginResponse = Response & {
     href?: string
+    user?: User
 }
 
 type LogoutResponse = Response & {
@@ -31,7 +32,6 @@ export async function login(input: z.input<typeof loginSchema>): Promise<LoginRe
 
     const user = await prisma.user.findFirst({
         where: { email: parsed.data.email, isDeleted: false },
-        select: { id: true, password: true },
     })
 
     const isValid = user ? await verifyPassword(user.password, parsed.data.password) : false
@@ -42,7 +42,9 @@ export async function login(input: z.input<typeof loginSchema>): Promise<LoginRe
     }
 
     await createSession(user.id)
-    return { status: true, message: 'Giriş yapıldı', href: '/app' }
+
+    // The password hash never leaves the server
+    return { status: true, message: 'Giriş yapıldı', href: '/app', user: { ...user, password: '' } }
 }
 
 export async function logout(): Promise<LogoutResponse> {

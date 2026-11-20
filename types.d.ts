@@ -37,5 +37,3 @@ export type Session = SessionDB & {
     user?: User
 }
 
-// Logged-in user as returned by getCurrentUser() (never contains the password)
-export type AuthUser = Pick<User, 'id' | 'name' | 'surname' | 'fullName' | 'email' | 'role'>

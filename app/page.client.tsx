@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 import { login } from '@/actions/auth'
+import { useSiteContext } from '@/components/app/context/SiteContext'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Field, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field'
@@ -18,6 +19,7 @@ type LoginFormValues = {
 
 export default function LoginPageClient() {
     const router = useRouter()
+    const { setUser } = useSiteContext()
     const {
         register,
         handleSubmit,
@@ -93,6 +95,7 @@ export default function LoginPageClient() {
             return
         }
 
+        setUser(result.user ?? null)
         toast.success(result.message ?? 'Giriş yapıldı')
         router.replace(result.href ?? '/app')
     }

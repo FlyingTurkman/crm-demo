@@ -169,9 +169,24 @@ export default function AppPageClient() {
   components/
   ├── ui/              → shadcn (generated, don't edit style)
   └── app/
+      ├── context/
+      │   └── SiteContext.tsx
       └── layout/
           └── MainMenu.tsx
   ```
+
+## Global state (context) rules
+- Global client state lives in **`SiteContext`** (`components/app/context/SiteContext.tsx`). `SiteProvider` wraps the whole app in `app/layout.tsx`.
+- Read and update it **only through the `useSiteContext()` hook** — never `useContext(SiteContext)` directly:
+
+  ```tsx
+  const { user, setUser } = useSiteContext()
+  ```
+- Current states: `user` (`User | null` — the full logged-in user object, with `password` always cleared to `''` so the hash never reaches the browser) and `setUser`.
+  - Initial `user` comes from `getCurrentUser()` in the root layout (server).
+  - Layouts don't re-render on client navigation, so actions that change the user must also update the context: on login call `setUser(result.user)`, on logout `setUser(null)`.
+- New global states are added to `SiteContext` (state + setter in `SiteContextValue`) instead of creating new contexts.
+- Use `useSiteContext()` in client components (`'use client'`); server code uses `getCurrentUser()`.
 - Style with Tailwind classes and the theme CSS variables in `app/globals.css` (`bg-primary`, `text-muted-foreground`, ...), not hard-coded colors.
 
 ## Code style rules

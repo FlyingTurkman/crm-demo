@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { IoChevronDown, IoDocumentText, IoHome, IoLogOut, IoNewspaper, IoPeople, IoPerson } from 'react-icons/io5'
 import { logout } from '@/actions/auth'
+import { useSiteContext } from '@/components/app/context/SiteContext'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { buttonVariants } from '@/components/ui/button'
 import {
@@ -16,7 +17,7 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import type { AuthUser } from '@/types'
+import type { User } from '@/types'
 
 const menuItems = [
     { href: '/app', label: 'Ana Sayfa', icon: IoHome },
@@ -25,14 +26,15 @@ const menuItems = [
     { href: '/app/blogs', label: 'Bloglar', icon: IoNewspaper },
 ]
 
-const roleLabels: Record<AuthUser['role'], string> = {
+const roleLabels: Record<User['role'], string> = {
     admin: 'Admin',
     moderator: 'Moderatör',
 }
 
-export default function MainMenu({ user }: { user: AuthUser }) {
+export default function MainMenu() {
     const router = useRouter()
-    const initials = `${user.name.charAt(0)}${user.surname.charAt(0)}`.toLocaleUpperCase('tr-TR')
+    const { user, setUser } = useSiteContext()
+    const initials = user ? `${user.name.charAt(0)}${user.surname.charAt(0)}`.toLocaleUpperCase('tr-TR') : ''
 
     return (
         <div className='bg-primary text-primary-foreground'>
@@ -47,37 +49,39 @@ export default function MainMenu({ user }: { user: AuthUser }) {
                     </Link>
                 ))}
 
-                <DropdownMenu>
-                    <DropdownMenuTrigger
-                        className={buttonVariants({ variant: 'ghost', className: 'ml-auto h-auto py-1 gap-2' })}
-                    >
-                        <Avatar size='sm'>
-                            <AvatarFallback>{initials}</AvatarFallback>
-                        </Avatar>
-                        {user.fullName}
-                        <IoChevronDown />
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align='end' className='w-56'>
-                        <DropdownMenuGroup>
-                            <DropdownMenuLabel>
-                                <div className='flex flex-col'>
-                                    <span className='text-sm font-medium text-foreground'>{user.fullName}</span>
-                                    <span className='text-xs text-muted-foreground'>{user.email}</span>
-                                    <span className='text-xs text-muted-foreground'>{roleLabels[user.role]}</span>
-                                </div>
-                            </DropdownMenuLabel>
-                        </DropdownMenuGroup>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuGroup>
-                            <DropdownMenuItem onClick={handleProfile}>
-                                <IoPerson /> Profilim
-                            </DropdownMenuItem>
-                            <DropdownMenuItem variant='destructive' onClick={handleLogout}>
-                                <IoLogOut /> Çıkış Yap
-                            </DropdownMenuItem>
-                        </DropdownMenuGroup>
-                    </DropdownMenuContent>
-                </DropdownMenu>
+                {user && (
+                    <DropdownMenu>
+                        <DropdownMenuTrigger
+                            className={buttonVariants({ variant: 'ghost', className: 'ml-auto h-auto py-1 gap-2' })}
+                        >
+                            <Avatar size='sm'>
+                                <AvatarFallback>{initials}</AvatarFallback>
+                            </Avatar>
+                            {user.fullName}
+                            <IoChevronDown />
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align='end' className='w-56'>
+                            <DropdownMenuGroup>
+                                <DropdownMenuLabel>
+                                    <div className='flex flex-col'>
+                                        <span className='text-sm font-medium text-foreground'>{user.fullName}</span>
+                                        <span className='text-xs text-muted-foreground'>{user.email}</span>
+                                        <span className='text-xs text-muted-foreground'>{roleLabels[user.role]}</span>
+                                    </div>
+                                </DropdownMenuLabel>
+                            </DropdownMenuGroup>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuGroup>
+                                <DropdownMenuItem onClick={handleProfile}>
+                                    <IoPerson /> Profilim
+                                </DropdownMenuItem>
+                                <DropdownMenuItem variant='destructive' onClick={handleLogout}>
+                                    <IoLogOut /> Çıkış Yap
+                                </DropdownMenuItem>
+                            </DropdownMenuGroup>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                )}
             </div>
         </div>
     )
@@ -94,6 +98,7 @@ export default function MainMenu({ user }: { user: AuthUser }) {
             return
         }
 
+        setUser(null)
         toast.success(result.message ?? 'Çıkış yapıldı')
         router.replace(result.href ?? '/')
     }

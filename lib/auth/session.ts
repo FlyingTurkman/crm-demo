@@ -39,7 +39,7 @@ export async function createSession(userId: string) {
 }
 
 // Validates a raw access token against the database.
-// Returns the session user (without password), or null if the token is invalid or expired.
+// Returns the full session user with the password hash cleared (password: ''), or null if the token is invalid or expired.
 export async function validateAccessToken(accessToken: string) {
     const session = await prisma.session.findFirst({
         where: {
@@ -48,24 +48,16 @@ export async function validateAccessToken(accessToken: string) {
             isDeleted: false,
             user: { isDeleted: false },
         },
-        select: {
-            user: {
-                select: {
-                    id: true,
-                    name: true,
-                    surname: true,
-                    fullName: true,
-                    email: true,
-                    role: true,
-                },
-            },
-        },
+        select: { user: true },
     })
 
-    return session?.user ?? null
+    if (!session) return null
+
+    // The password hash never leaves the server
+    return { ...session.user, password: '' }
 }
 
-// Validates the access token cookie and returns the logged-in user (without password), or null.
+// Validates the access token cookie and returns the logged-in user (password cleared), or null.
 export async function getCurrentUser() {
     const cookieStore = await cookies()
     const accessToken = cookieStore.get(ACCESS_TOKEN_COOKIE)?.value

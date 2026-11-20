@@ -17,7 +17,7 @@ export default async function AppLayout({
 
     return (
         <div>
-            <MainMenu user={user} />
+            <MainMenu />
             {children}
         </div>
     )
