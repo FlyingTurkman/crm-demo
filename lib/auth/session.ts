@@ -1,5 +1,6 @@
-import { cookies } from "next/headers"
-import { prisma } from "@/lib/prisma"
+import { cookies } from 'next/headers'
+import { prisma } from '@/lib/prisma'
+import { UserDto } from '@/dtos/userDTO'
 import {
     ACCESS_TOKEN_COOKIE,
     ACCESS_TOKEN_TTL,
@@ -8,7 +9,7 @@ import {
     generateToken,
     getCookieOptions,
     hashToken,
-} from "@/lib/auth/token"
+} from '@/lib/auth/token'
 
 function getExpiryDates() {
     const now = Date.now()
@@ -39,7 +40,7 @@ export async function createSession(userId: string) {
 }
 
 // Validates a raw access token against the database.
-// Returns the full session user with the password hash cleared (password: ''), or null if the token is invalid or expired.
+// Returns the session user as a censored UserDto, or null if the token is invalid or expired.
 export async function validateAccessToken(accessToken: string) {
     const session = await prisma.session.findFirst({
         where: {
@@ -53,11 +54,10 @@ export async function validateAccessToken(accessToken: string) {
 
     if (!session) return null
 
-    // The password hash never leaves the server
-    return { ...session.user, password: '' }
+    return new UserDto(session.user)
 }
 
-// Validates the access token cookie and returns the logged-in user (password cleared), or null.
+// Validates the access token cookie and returns the logged-in user as a UserDto, or null.
 export async function getCurrentUser() {
     const cookieStore = await cookies()
     const accessToken = cookieStore.get(ACCESS_TOKEN_COOKIE)?.value

@@ -1,18 +1,18 @@
 'use client'
 
 import { createContext, useContext, useState, type Dispatch, type ReactNode, type SetStateAction } from 'react'
-import type { User } from '@/types'
+import type { UserDto } from '@/dtos/userDTO'
 
 type SiteContextValue = {
-    user: User | null
-    setUser: Dispatch<SetStateAction<User | null>>
+    user: UserDto | null
+    setUser: Dispatch<SetStateAction<UserDto | null>>
 }
 
 const SiteContext = createContext<SiteContextValue | null>(null)
 
 // Wraps the whole app (app/layout.tsx). initialUser comes from getCurrentUser() on the server.
-export function SiteProvider({ children, initialUser }: { children: ReactNode, initialUser: User | null }) {
-    const [user, setUser] = useState<User | null>(initialUser)
+export function SiteProvider({ children, initialUser }: { children: ReactNode, initialUser: UserDto | null }) {
+    const [user, setUser] = useState<UserDto | null>(initialUser)
 
     return (
         <SiteContext value={{ user, setUser }}>

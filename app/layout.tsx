@@ -32,7 +32,8 @@ export default async function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <SiteProvider initialUser={user}>
+        {/* DTO classes are spread into plain objects before reaching client components */}
+        <SiteProvider initialUser={user ? { ...user } : null}>
           {children}
           <Toaster richColors position='top-center' />
         </SiteProvider>

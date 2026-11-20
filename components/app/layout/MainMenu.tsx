@@ -17,7 +17,7 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import type { User } from '@/types'
+import type { UserDto } from '@/dtos/userDTO'
 
 const menuItems = [
     { href: '/app', label: 'Ana Sayfa', icon: IoHome },
@@ -26,7 +26,7 @@ const menuItems = [
     { href: '/app/blogs', label: 'Bloglar', icon: IoNewspaper },
 ]
 
-const roleLabels: Record<User['role'], string> = {
+const roleLabels: Record<UserDto['role'], string> = {
     admin: 'Admin',
     moderator: 'Moderatör',
 }

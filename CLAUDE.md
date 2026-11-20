@@ -26,10 +26,24 @@
   - access token missing/expired but refresh token valid → rotates **both** tokens (old ones stop working immediately)
   - invalid tokens → both cookies are cleared
 - After login redirect to `/app`, after logout redirect to `/` (via the action's `href`).
-- Session helpers (`lib/auth/session.ts`): `createSession` / `deleteSession` (Server Actions only), `getCurrentUser()` (validates the access token, returns user without password or `null`), `rotateSession`.
+- Session helpers (`lib/auth/session.ts`): `createSession` / `deleteSession` (Server Actions only), `getCurrentUser()` (validates the access token, returns a censored `UserDto` or `null`), `rotateSession`.
 - Logout soft-deletes the session (`isDeleted: true`) and clears the cookies.
 - Every Server Action that requires login must call `getCurrentUser()` first and return `{ status: false, message }` if it is `null` or the role is not allowed.
 - Create users from the terminal with `npm run user:create`.
+
+## DTO rules
+- **Data is censored with a DTO before it is sent to the client.** Never send a raw Prisma record of a sensitive model (e.g. `User`) to a client component or return it from a Server Action.
+- DTOs are **classes** in `dtos/` (one file per model, e.g. `dtos/userDTO.ts`). The constructor copies only allowed fields and censors the sensitive ones; relations and internal fields (`isDeleted`, `sessions`, ...) are never copied.
+- User DTOs (`dtos/userDTO.ts`):
+  - `UserDto` — the user's own account data. `email` is masked with `maskEmail` (`test@testmail.com` → `t***@testmail.com`), `password` is always `PASSWORD_MASK` (`'***'`); the hash is never copied.
+  - `PublicUserDto` — data safe to show to other users: no email, password, role or relations.
+- **Next.js can't pass class instances to client components or return them from Server Actions** ("Only plain objects ... can be passed to Client Components"). Spread the DTO into a plain object at that boundary — the censoring already happened in the constructor:
+
+  ```ts
+  return { status: true, user: { ...new UserDto(user) } }   // Server Action
+  <SiteProvider initialUser={user ? { ...user } : null}>     // Server → client props
+  ```
+- Type client-side data with the DTO class type (`UserDto`, `PublicUserDto`), not the Prisma type.
 
 ## Type rules
 - All model types live in `types.d.ts` at the project root and are imported with `import type { Customer } from '@/types'`.
@@ -182,7 +196,7 @@ export default function AppPageClient() {
   ```tsx
   const { user, setUser } = useSiteContext()
   ```
-- Current states: `user` (`User | null` — the full logged-in user object, with `password` always cleared to `''` so the hash never reaches the browser) and `setUser`.
+- Current states: `user` (`UserDto | null` — the logged-in user censored by `UserDto`: masked email, password `'***'`) and `setUser`.
   - Initial `user` comes from `getCurrentUser()` in the root layout (server).
   - Layouts don't re-render on client navigation, so actions that change the user must also update the context: on login call `setUser(result.user)`, on logout `setUser(null)`.
 - New global states are added to `SiteContext` (state + setter in `SiteContextValue`) instead of creating new contexts.

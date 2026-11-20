@@ -58,3 +58,40 @@ model Post {
   @@index([status])
   @@map("posts")
 }
+
+enum UserRole {
+  admin
+  moderator
+}
+
+model User {
+  id        String    @id @default(auto()) @map("_id") @db.ObjectId
+  name      String
+  surname   String
+  fullName  String
+  email     String    @unique
+  password  String
+  role      UserRole  @default(moderator)
+  sessions  Session[]
+  isDeleted Boolean   @default(false)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@map("users")
+}
+
+model Session {
+  id                    String   @id @default(auto()) @map("_id") @db.ObjectId
+  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId                String   @db.ObjectId
+  accessTokenHash       String   @unique
+  refreshTokenHash      String   @unique
+  accessTokenExpiresAt  DateTime
+  refreshTokenExpiresAt DateTime
+  isDeleted             Boolean  @default(false)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@index([userId])
+  @@map("sessions")
+}
