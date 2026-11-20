@@ -1,24 +1,7 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+import NewCustomerPageClient from './page.client'
 
 export default function Page() {
-
-
     return (
-        <div>
-            
-        </div>
+        <NewCustomerPageClient />
     )
 }

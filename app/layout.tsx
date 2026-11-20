@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Toaster } from '@/components/ui/sonner'
+import { TooltipProvider } from '@/components/ui/tooltip'
 import { SiteProvider } from '@/components/app/context/SiteContext'
 import { getCurrentUser } from '@/lib/auth/session'
 
@@ -34,7 +35,9 @@ export default async function RootLayout({
       >
         {/* DTO classes are spread into plain objects before reaching client components */}
         <SiteProvider initialUser={user ? { ...user } : null}>
-          {children}
+          <TooltipProvider>
+            {children}
+          </TooltipProvider>
           <Toaster richColors position='top-center' />
         </SiteProvider>
       </body>

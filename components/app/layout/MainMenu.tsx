@@ -37,8 +37,8 @@ export default function MainMenu() {
     const initials = user ? `${user.name.charAt(0)}${user.surname.charAt(0)}`.toLocaleUpperCase('tr-TR') : ''
 
     return (
-        <div className='bg-primary text-primary-foreground'>
-            <div className='container mx-auto p-2 flex flex-row items-center gap-4'>
+        <div className='sticky top-0 z-20 h-14 bg-primary text-primary-foreground'>
+            <div className='container mx-auto h-full p-2 flex flex-row items-center gap-4'>
                 {menuItems.map((item) => (
                     <Link
                         key={item.href}
