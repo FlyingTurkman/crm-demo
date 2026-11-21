@@ -23,6 +23,10 @@
   --color-chart-3: var(--chart-3);
   --color-chart-2: var(--chart-2);
   --color-chart-1: var(--chart-1);
+  /* Blog status chart colors (dataviz palette, validated for color blindness) */
+  --color-status-draft: var(--status-draft);
+  --color-status-in-review: var(--status-in-review);
+  --color-status-published: var(--status-published);
   --color-ring: var(--ring);
   --color-input: var(--input);
   --color-border: var(--border);
@@ -70,6 +74,9 @@
   --chart-3: oklch(0.666 0.179 58.318);
   --chart-4: oklch(0.555 0.163 48.998);
   --chart-5: oklch(0.473 0.137 46.201);
+  --status-draft: #2a78d6;
+  --status-in-review: #eb6834;
+  --status-published: #1baf7a;
   --radius: 0.625rem;
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.141 0.005 285.823);
@@ -107,6 +114,9 @@
   --chart-3: oklch(0.666 0.179 58.318);
   --chart-4: oklch(0.555 0.163 48.998);
   --chart-5: oklch(0.473 0.137 46.201);
+  --status-draft: #3987e5;
+  --status-in-review: #d95926;
+  --status-published: #199e70;
   --sidebar: oklch(0.21 0.006 285.885);
   --sidebar-foreground: oklch(0.985 0 0);
   --sidebar-primary: oklch(0.623 0.214 259.815);

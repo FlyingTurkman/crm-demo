@@ -6,8 +6,10 @@ import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { authorize } from '@/lib/auth/authorize'
 import { sanitizeRichTextHtml } from '@/lib/richText'
+import { getPeriodWhere, type CreatedPeriod } from '@/lib/period'
 import { escapeRegex } from '@/lib/search'
 import {
+    createdPeriods,
     maxPostContentLength,
     maxPostTitleLength,
     maxRawContentLength,
@@ -54,6 +56,7 @@ const postListFields = {
         .max(maxSearchLength, `Arama metni en fazla ${maxSearchLength} karakter olabilir`)
         .optional(),
     status: statusField.optional(),
+    period: z.enum(createdPeriods, 'Geçersiz tarih aralığı').optional(),
     sort: z.enum(postSorts, 'Geçersiz sıralama').default('updated'),
     page: z.coerce.number().int().min(1, 'Geçersiz sayfa').default(1),
 }
@@ -71,13 +74,18 @@ const postOrderBy: Record<PostSort, Prisma.PostOrderByWithRelationInput> = {
     title: { title: 'asc' },
 }
 
-function getPostListWhere(query: string | undefined, status: PostStatus | undefined): Prisma.PostWhereInput {
+function getPostListWhere(
+    query: string | undefined,
+    status: PostStatus | undefined,
+    period?: CreatedPeriod
+): Prisma.PostWhereInput {
     const search = query ? escapeRegex(query) : ''
 
     return {
         isDeleted: false,
         customer: { isDeleted: false },
         ...(status ? { status } : {}),
+        ...getPeriodWhere(period),
         ...(search ? {
             OR: [
                 { title: { contains: search, mode: 'insensitive' } },
@@ -171,9 +179,9 @@ export async function getPosts(input: z.input<typeof getPostsSchema>): Promise<G
         return { status: false, message: parsed.error.issues[0].message }
     }
 
-    const { customerId, query, status, sort, page } = parsed.data
+    const { customerId, query, status, period, sort, page } = parsed.data
     const where: Prisma.PostWhereInput = {
-        ...getPostListWhere(query, status),
+        ...getPostListWhere(query, status, period),
         customerId,
     }
 
@@ -203,8 +211,8 @@ export async function getAllPosts(input: z.input<typeof getAllPostsSchema>): Pro
         return { status: false, message: parsed.error.issues[0].message }
     }
 
-    const { query, status, sort, page } = parsed.data
-    const where = getPostListWhere(query, status)
+    const { query, status, period, sort, page } = parsed.data
+    const where = getPostListWhere(query, status, period)
 
     const total = await prisma.post.count({ where })
     const pageCount = Math.max(1, Math.ceil(total / pageLimit))

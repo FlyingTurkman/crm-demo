@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import type { PostStatus } from '@prisma/client'
 import { getPosts } from '@/actions/post'
+import { parsePeriod } from '@/lib/period'
 import { postSorts, postStatusLabels } from '@/lib/src/constants'
 import { getCustomerPageTitle } from '@/lib/data'
 import CustomerBlogsPageClient from './page.client'
@@ -18,7 +19,7 @@ export default async function Page({
     searchParams
 }: {
     params: Promise<{ customerId: string }>
-    searchParams: Promise<{ q?: string, status?: string, sort?: string, page?: string }>
+    searchParams: Promise<{ q?: string, status?: string, period?: string, sort?: string, page?: string }>
 }) {
     const { customerId } = await params
     const query = await searchParams
@@ -28,9 +29,10 @@ export default async function Page({
     const sort = postSorts.find(function (item) {
         return item === query.sort
     }) as PostSort | undefined
+    const period = parsePeriod(query.period)
     const page = Math.max(1, Number.parseInt(query.page ?? '1', 10) || 1)
 
-    const result = await getPosts({ customerId, query: search, status, sort, page })
+    const result = await getPosts({ customerId, query: search, status, period, sort, page })
 
     if (!result.posts) {
         notFound()
@@ -43,7 +45,7 @@ export default async function Page({
             total={result.total ?? 0}
             page={result.page ?? 1}
             pageCount={result.pageCount ?? 1}
-            filters={{ query: search ?? '', status, sort: sort ?? 'updated' }}
+            filters={{ query: search ?? '', status, period, sort: sort ?? 'updated' }}
         />
     )
 }

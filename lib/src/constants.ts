@@ -78,3 +78,15 @@ export const noteSortLabels = {
 
 // Notes sidebar
 export const sidebarNoteLimit = 20
+
+// 'Created at' filter of the lists (?period=)
+export const createdPeriods = ['today', 'week', 'month'] as const
+export const createdPeriodLabels = {
+    all: 'Tüm zamanlar',
+    today: 'Bugün eklenenler',
+    week: 'Son 7 gün',
+    month: 'Son 30 gün',
+}
+
+// Dashboard
+export const dashboardListLimit = 5

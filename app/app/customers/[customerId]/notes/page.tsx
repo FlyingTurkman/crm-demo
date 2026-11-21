@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { getNotes } from '@/actions/note'
+import { parsePeriod } from '@/lib/period'
 import { noteSorts } from '@/lib/src/constants'
 import { getCustomerPageTitle } from '@/lib/data'
 import CustomerNotesPageClient from './page.client'
@@ -17,7 +18,7 @@ export default async function Page({
     searchParams
 }: {
     params: Promise<{ customerId: string }>
-    searchParams: Promise<{ q?: string, sort?: string, page?: string }>
+    searchParams: Promise<{ q?: string, period?: string, sort?: string, page?: string }>
 }) {
     const { customerId } = await params
     const query = await searchParams
@@ -26,9 +27,10 @@ export default async function Page({
     const sort = noteSorts.find(function (item) {
         return item === query.sort
     }) as NoteSort | undefined
+    const period = parsePeriod(query.period)
     const page = Math.max(1, Number.parseInt(query.page ?? '1', 10) || 1)
 
-    const result = await getNotes({ customerId, query: search, sort, page })
+    const result = await getNotes({ customerId, query: search, period, sort, page })
 
     if (!result.notes) {
         notFound()
@@ -41,7 +43,7 @@ export default async function Page({
             total={result.total ?? 0}
             page={result.page ?? 1}
             pageCount={result.pageCount ?? 1}
-            filters={{ query: search ?? '', sort: sort ?? 'updated' }}
+            filters={{ query: search ?? '', period, sort: sort ?? 'updated' }}
         />
     )
 }

@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { getAllNotes } from '@/actions/note'
+import { parsePeriod } from '@/lib/period'
 import { noteSorts } from '@/lib/src/constants'
 import NotesPageClient from './page.client'
 
@@ -12,7 +13,7 @@ type NoteSort = (typeof noteSorts)[number]
 export default async function Page({
     searchParams
 }: {
-    searchParams: Promise<{ q?: string, sort?: string, page?: string }>
+    searchParams: Promise<{ q?: string, period?: string, sort?: string, page?: string }>
 }) {
     const params = await searchParams
     // Unknown values in the URL are ignored instead of failing validation
@@ -20,9 +21,10 @@ export default async function Page({
     const sort = noteSorts.find(function (item) {
         return item === params.sort
     }) as NoteSort | undefined
+    const period = parsePeriod(params.period)
     const page = Math.max(1, Number.parseInt(params.page ?? '1', 10) || 1)
 
-    const result = await getAllNotes({ query, sort, page })
+    const result = await getAllNotes({ query, period, sort, page })
 
     return (
         <NotesPageClient
@@ -30,7 +32,7 @@ export default async function Page({
             total={result.total ?? 0}
             page={result.page ?? 1}
             pageCount={result.pageCount ?? 1}
-            filters={{ query: query ?? '', sort: sort ?? 'updated' }}
+            filters={{ query: query ?? '', period, sort: sort ?? 'updated' }}
             errorMessage={result.status ? undefined : result.message}
         />
     )

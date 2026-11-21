@@ -15,6 +15,7 @@ export type Permission =
     | 'note:create'
     | 'note:update'
     | 'note:delete'
+    | 'dashboard:read'
 
 const allPermissions: Permission[] = [
     'customer:read',
@@ -29,6 +30,7 @@ const allPermissions: Permission[] = [
     'note:create',
     'note:update',
     'note:delete',
+    'dashboard:read',
 ]
 
 // Single source of truth for roles. Moderators can do everything except deleting.

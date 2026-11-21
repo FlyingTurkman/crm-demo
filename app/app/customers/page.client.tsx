@@ -10,12 +10,14 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { buttonVariants } from '@/components/ui/button'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { formatDate } from '@/lib/format'
-import { customerSortLabels, customerSorts, pageLimit, postStatusLabels } from '@/lib/src/constants'
+import { createdPeriodLabels, customerSortLabels, customerSorts, pageLimit, postStatusLabels } from '@/lib/src/constants'
+import type { CreatedPeriod } from '@/lib/period'
 import { cn } from '@/lib/utils'
 import type { Customer } from '@/types'
 
 type CustomerListFilters = {
     query: string
+    period?: CreatedPeriod
     postStatus?: PostStatus
     sort: (typeof customerSorts)[number]
 }
@@ -44,7 +46,7 @@ export default function CustomersPageClient({
 }) {
     // Shared by filters and pagination: dims the table while the next page loads
     const [isPending, startTransition] = useTransition()
-    const hasFilters = Boolean(filters.query || filters.postStatus)
+    const hasFilters = Boolean(filters.query || filters.postStatus || filters.period)
     const firstIndex = total === 0 ? 0 : (page - 1) * pageLimit + 1
     const lastIndex = Math.min(page * pageLimit, total)
 
@@ -72,6 +74,14 @@ export default function CustomersPageClient({
                         defaultValue: 'all',
                         items: postStatusFilterLabels,
                         label: 'Blog durumuna göre filtrele',
+                    },
+                    {
+                        param: 'period',
+                        value: filters.period ?? 'all',
+                        defaultValue: 'all',
+                        items: createdPeriodLabels,
+                        label: 'Eklenme zamanı',
+                        className: 'lg:w-44',
                     },
                     {
                         param: 'sort',

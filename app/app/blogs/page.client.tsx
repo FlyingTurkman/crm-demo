@@ -8,12 +8,14 @@ import ListPagination from '@/components/app/common/ListPagination'
 import PostStatusSelect from '@/components/app/posts/PostStatusSelect'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { formatDate } from '@/lib/format'
-import { pageLimit, postSortLabels, postSorts, postStatusLabels } from '@/lib/src/constants'
+import { createdPeriodLabels, pageLimit, postSortLabels, postSorts, postStatusLabels } from '@/lib/src/constants'
+import type { CreatedPeriod } from '@/lib/period'
 import { cn } from '@/lib/utils'
 import type { Post } from '@/types'
 
 type BlogListFilters = {
     query: string
+    period?: CreatedPeriod
     status?: PostStatus
     sort: (typeof postSorts)[number]
 }
@@ -40,7 +42,7 @@ export default function BlogsPageClient({
 }) {
     // Shared by filters and pagination: dims the table while the next page loads
     const [isPending, startTransition] = useTransition()
-    const hasFilters = Boolean(filters.query || filters.status)
+    const hasFilters = Boolean(filters.query || filters.status || filters.period)
     const firstIndex = total === 0 ? 0 : (page - 1) * pageLimit + 1
     const lastIndex = Math.min(page * pageLimit, total)
 
@@ -63,6 +65,14 @@ export default function BlogsPageClient({
                         defaultValue: 'all',
                         items: statusFilterLabels,
                         label: 'Duruma göre filtrele',
+                        className: 'lg:w-44',
+                    },
+                    {
+                        param: 'period',
+                        value: filters.period ?? 'all',
+                        defaultValue: 'all',
+                        items: createdPeriodLabels,
+                        label: 'Eklenme zamanı',
                         className: 'lg:w-44',
                     },
                     {

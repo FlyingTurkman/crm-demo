@@ -5,15 +5,17 @@ import { PostStatus, Prisma } from '@prisma/client'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { authorize } from '@/lib/auth/authorize'
+import { getPeriodWhere } from '@/lib/period'
 import { escapeRegex } from '@/lib/search'
 import {
-    pageLimit,
+    createdPeriods,
     customerSorts,
     maxCompanyLength,
     maxNameLength,
     maxPhoneLength,
     maxSearchLength,
     objectIdPattern,
+    pageLimit,
     searchResultLimit,
     sidebarCustomerLimit,
 } from '@/lib/src/constants'
@@ -58,6 +60,7 @@ const getCustomersSchema = z.object({
         .max(maxSearchLength, `Arama metni en fazla ${maxSearchLength} karakter olabilir`)
         .optional(),
     postStatus: z.enum(PostStatus, 'Geçersiz blog durumu').optional(),
+    period: z.enum(createdPeriods, 'Geçersiz tarih aralığı').optional(),
     sort: z.enum(customerSorts, 'Geçersiz sıralama').default('updated'),
     page: z.coerce.number().int().min(1, 'Geçersiz sayfa').default(1),
 })
@@ -118,7 +121,7 @@ export async function getCustomers(input: z.input<typeof getCustomersSchema>): P
         return { status: false, message: parsed.error.issues[0].message }
     }
 
-    const { query, postStatus, sort, page } = parsed.data
+    const { query, postStatus, period, sort, page } = parsed.data
     const search = query ? escapeRegex(query) : ''
 
     const where: Prisma.CustomerWhereInput = {
@@ -133,6 +136,7 @@ export async function getCustomers(input: z.input<typeof getCustomersSchema>): P
         } : {}),
         // Only customers that have at least one (not deleted) post in this status
         ...(postStatus ? { posts: { some: { status: postStatus, isDeleted: false } } } : {}),
+        ...getPeriodWhere(period),
     }
 
     const orderBy: Record<CustomerSort, Prisma.CustomerOrderByWithRelationInput> = {

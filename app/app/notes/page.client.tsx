@@ -8,12 +8,14 @@ import ListFilters from '@/components/app/common/ListFilters'
 import ListPagination from '@/components/app/common/ListPagination'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { formatDate, getNotePreview } from '@/lib/format'
-import { noteSortLabels, noteSorts, pageLimit } from '@/lib/src/constants'
+import { createdPeriodLabels, noteSortLabels, noteSorts, pageLimit } from '@/lib/src/constants'
+import type { CreatedPeriod } from '@/lib/period'
 import { cn } from '@/lib/utils'
 import type { Note } from '@/types'
 
 type NoteListFilters = {
     query: string
+    period?: CreatedPeriod
     sort: (typeof noteSorts)[number]
 }
 
@@ -51,6 +53,14 @@ export default function NotesPageClient({
                 placeholder='Not içeriğinde ara...'
                 selects={[
                     {
+                        param: 'period',
+                        value: filters.period ?? 'all',
+                        defaultValue: 'all',
+                        items: createdPeriodLabels,
+                        label: 'Eklenme zamanı',
+                        className: 'lg:w-44',
+                    },
+                    {
                         param: 'sort',
                         value: filters.sort,
                         defaultValue: 'updated',
@@ -81,7 +91,7 @@ export default function NotesPageClient({
                         {notes.length === 0 && (
                             <TableRow>
                                 <TableCell colSpan={4} className='py-8 text-center text-muted-foreground'>
-                                    {filters.query ? 'Aramaya uyan not bulunamadı' : 'Henüz not yok'}
+                                    {filters.query || filters.period ? 'Filtrelere uyan not bulunamadı' : 'Henüz not yok'}
                                 </TableCell>
                             </TableRow>
                         )}

@@ -10,6 +10,10 @@ export function getNotePreview(content: string) {
     return firstLine?.trim() || 'Boş not'
 }
 
+export function formatTime(date: Date | string) {
+    return new Date(date).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })
+}
+
 export function formatDateTime(date: Date | string) {
     return new Date(date).toLocaleString('tr-TR', {
         day: 'numeric',

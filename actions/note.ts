@@ -6,8 +6,10 @@ import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { authorize } from '@/lib/auth/authorize'
 import { sanitizeRichTextHtml } from '@/lib/richText'
+import { getPeriodWhere, type CreatedPeriod } from '@/lib/period'
 import { escapeRegex } from '@/lib/search'
 import {
+    createdPeriods,
     maxNoteContentLength,
     maxRawContentLength,
     maxSearchLength,
@@ -45,6 +47,7 @@ const noteListFields = {
         .trim()
         .max(maxSearchLength, `Arama metni en fazla ${maxSearchLength} karakter olabilir`)
         .optional(),
+    period: z.enum(createdPeriods, 'Geçersiz tarih aralığı').optional(),
     sort: z.enum(noteSorts, 'Geçersiz sıralama').default('updated'),
     page: z.coerce.number().int().min(1, 'Geçersiz sayfa').default(1),
 }
@@ -71,12 +74,13 @@ const noteOrderBy: Record<NoteSort, Prisma.NoteOrderByWithRelationInput> = {
     created: { createdAt: 'desc' },
 }
 
-function getNoteListWhere(query: string | undefined): Prisma.NoteWhereInput {
+function getNoteListWhere(query: string | undefined, period?: CreatedPeriod): Prisma.NoteWhereInput {
     const search = query ? escapeRegex(query) : ''
 
     return {
         isDeleted: false,
         customer: { isDeleted: false },
+        ...getPeriodWhere(period),
         // Searches the plain text version, so styling doesn't get in the way
         ...(search ? { content: { contains: search, mode: 'insensitive' } } : {}),
     }
@@ -147,9 +151,9 @@ export async function getNotes(input: z.input<typeof getNotesSchema>): Promise<G
         return { status: false, message: parsed.error.issues[0].message }
     }
 
-    const { customerId, query, sort, page } = parsed.data
+    const { customerId, query, period, sort, page } = parsed.data
     const where: Prisma.NoteWhereInput = {
-        ...getNoteListWhere(query),
+        ...getNoteListWhere(query, period),
         customerId,
     }
 
@@ -179,8 +183,8 @@ export async function getAllNotes(input: z.input<typeof getAllNotesSchema>): Pro
         return { status: false, message: parsed.error.issues[0].message }
     }
 
-    const { query, sort, page } = parsed.data
-    const where = getNoteListWhere(query)
+    const { query, period, sort, page } = parsed.data
+    const where = getNoteListWhere(query, period)
 
     const total = await prisma.note.count({ where })
     const pageCount = Math.max(1, Math.ceil(total / pageLimit))

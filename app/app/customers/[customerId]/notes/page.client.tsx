@@ -11,12 +11,14 @@ import RichTextView from '@/components/app/editor/RichTextView'
 import { buttonVariants } from '@/components/ui/button'
 import { Card, CardAction, CardContent, CardDescription, CardHeader } from '@/components/ui/card'
 import { formatDateTime } from '@/lib/format'
-import { noteSortLabels, noteSorts, pageLimit } from '@/lib/src/constants'
+import { createdPeriodLabels, noteSortLabels, noteSorts, pageLimit } from '@/lib/src/constants'
+import type { CreatedPeriod } from '@/lib/period'
 import { cn } from '@/lib/utils'
 import type { Note } from '@/types'
 
 type CustomerNoteListFilters = {
     query: string
+    period?: CreatedPeriod
     sort: (typeof noteSorts)[number]
 }
 
@@ -57,6 +59,14 @@ export default function CustomerNotesPageClient({
                 placeholder='Not içeriğinde ara...'
                 selects={[
                     {
+                        param: 'period',
+                        value: filters.period ?? 'all',
+                        defaultValue: 'all',
+                        items: createdPeriodLabels,
+                        label: 'Eklenme zamanı',
+                        className: 'lg:w-44',
+                    },
+                    {
                         param: 'sort',
                         value: filters.sort,
                         defaultValue: 'updated',
@@ -71,7 +81,7 @@ export default function CustomerNotesPageClient({
 
             {notes.length === 0 && (
                 <p className='py-8 text-center text-sm text-muted-foreground'>
-                    {filters.query ? 'Aramaya uyan not bulunamadı' : 'Bu müşterinin henüz notu yok'}
+                    {filters.query || filters.period ? 'Filtrelere uyan not bulunamadı' : 'Bu müşterinin henüz notu yok'}
                 </p>
             )}
 
