@@ -1,6 +1,11 @@
+import type { Metadata } from 'next'
 import { getAllNotes } from '@/actions/note'
 import { noteSorts } from '@/lib/src/constants'
 import NotesPageClient from './page.client'
+
+export const metadata: Metadata = {
+    title: 'Notlar',
+}
 
 type NoteSort = (typeof noteSorts)[number]
 

@@ -137,6 +137,11 @@ app/app/
   - Default export is named **`<FolderName>PageClient`** in PascalCase (`app` → `AppPageClient`, `customers` → `CustomersPageClient`). The root page (`app/page.client.tsx`, the login page at `/`) is named `LoginPageClient`.
   - Holds the UI, state, forms (`react-hook-form`) and event handlers, following the `.tsx` component order (state → design → functions).
 
+- **Every `page.tsx` sets a page title — title only, no description / Open Graph (the app has no public / ad pages).** The root layout's template shows it as `<title> | CRM`.
+  - Static pages: `export const metadata: Metadata = { title: 'Müşteriler' }`.
+  - Pages of a record: `generateMetadata` with `getCustomerPageTitle(customerId, 'Bloglar')` / `getPostPageTitle(postId, 'Düzenle')` from `lib/data.ts` (e.g. `Ahmet Yılmaz - Bloglar`).
+- **Server components read a record with the `cache()`d getters in `lib/data.ts`** (`getCustomerCached`, `getPostCached`, `getNoteCached`) so a layout, its page and `generateMetadata` share one database query per request.
+
 ```tsx
 // page.tsx
 import AppPageClient from './page.client'

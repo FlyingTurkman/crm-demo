@@ -1,10 +1,10 @@
 import { ReactNode } from 'react'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { getCustomer } from '@/actions/customer'
 import CustomerActionsMenu from '@/components/app/customers/CustomerActionsMenu'
 import CustomerMenu from '@/components/app/customers/CustomerMenu'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { getCustomerCached } from '@/lib/data'
 
 export default async function CustomerLayout({
     children,
@@ -14,7 +14,7 @@ export default async function CustomerLayout({
     params: Promise<{ customerId: string }>
 }) {
     const { customerId } = await params
-    const result = await getCustomer({ customerId })
+    const result = await getCustomerCached(customerId)
 
     if (!result.customer) {
         notFound()

@@ -1,7 +1,12 @@
+import type { Metadata } from 'next'
 import type { PostStatus } from '@prisma/client'
 import { getCustomers } from '@/actions/customer'
 import { customerSorts, postStatusLabels } from '@/lib/src/constants'
 import CustomersPageClient from './page.client'
+
+export const metadata: Metadata = {
+    title: 'Müşteriler',
+}
 
 type CustomerSort = (typeof customerSorts)[number]
 

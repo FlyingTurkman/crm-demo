@@ -1,8 +1,15 @@
+import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import type { PostStatus } from '@prisma/client'
 import { getPosts } from '@/actions/post'
 import { postSorts, postStatusLabels } from '@/lib/src/constants'
+import { getCustomerPageTitle } from '@/lib/data'
 import CustomerBlogsPageClient from './page.client'
+
+export async function generateMetadata({ params }: { params: Promise<{ customerId: string }> }): Promise<Metadata> {
+    const { customerId } = await params
+    return { title: await getCustomerPageTitle(customerId, 'Bloglar') }
+}
 
 type PostSort = (typeof postSorts)[number]
 

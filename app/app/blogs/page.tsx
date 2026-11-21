@@ -1,7 +1,12 @@
+import type { Metadata } from 'next'
 import type { PostStatus } from '@prisma/client'
 import { getAllPosts } from '@/actions/post'
 import { postSorts, postStatusLabels } from '@/lib/src/constants'
 import BlogsPageClient from './page.client'
+
+export const metadata: Metadata = {
+    title: 'Bloglar',
+}
 
 type PostSort = (typeof postSorts)[number]
 
