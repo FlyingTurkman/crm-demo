@@ -1,15 +1,19 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { Prisma, type PostStatus } from '@prisma/client'
+import { PostStatus, Prisma } from '@prisma/client'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
-import { getCurrentUser } from '@/lib/auth/session'
+import { authorize } from '@/lib/auth/authorize'
+import { escapeRegex } from '@/lib/search'
 import {
+    pageLimit,
+    customerSorts,
     maxCompanyLength,
     maxNameLength,
     maxPhoneLength,
     maxSearchLength,
+    objectIdPattern,
     searchResultLimit,
     sidebarCustomerLimit,
 } from '@/lib/src/constants'
@@ -47,9 +51,24 @@ const searchCustomersSchema = z.object({
         .max(maxSearchLength, `Arama metni en fazla ${maxSearchLength} karakter olabilir`),
 })
 
+const getCustomersSchema = z.object({
+    query: z
+        .string()
+        .trim()
+        .max(maxSearchLength, `Arama metni en fazla ${maxSearchLength} karakter olabilir`)
+        .optional(),
+    postStatus: z.enum(PostStatus, 'Geçersiz blog durumu').optional(),
+    sort: z.enum(customerSorts, 'Geçersiz sıralama').default('updated'),
+    page: z.coerce.number().int().min(1, 'Geçersiz sayfa').default(1),
+})
+
+const updateCustomerSchema = createCustomerSchema.extend({
+    customerId: z.string().regex(objectIdPattern, 'Geçersiz müşteri'),
+})
+
 const getCustomerSchema = z.object({
     // MongoDB ObjectId: 24 hex characters, anything else would make Prisma throw
-    customerId: z.string().regex(/^[0-9a-f]{24}$/i, 'Geçersiz müşteri'),
+    customerId: z.string().regex(objectIdPattern, 'Geçersiz müşteri'),
 })
 
 type GetCustomerResponse = Response & {
@@ -63,31 +82,91 @@ type DeleteCustomerResponse = Response & {
 
 type GetCustomersResponse = Response & {
     customers?: Customer[]
+    total?: number
+    page?: number
+    pageCount?: number
 }
+
+type GetRecentCustomersResponse = Response & {
+    customers?: Customer[]
+}
+
+type SearchCustomersResponse = Response & {
+    customers?: Customer[]
+}
+
+type UpdateCustomerResponse = Response & {
+    customer?: Customer
+    href?: string
+}
+
+type CustomerSort = (typeof customerSorts)[number]
 
 type CreateCustomerResponse = Response & {
     customer?: Customer
     href?: string
 }
 
-export async function getCustomers(): Promise<GetCustomersResponse> {
-    const user = await getCurrentUser()
-    if (!user) {
-        return { status: false, message: 'Bu işlem için giriş yapmalısınız' }
+export async function getCustomers(input: z.input<typeof getCustomersSchema>): Promise<GetCustomersResponse> {
+    const auth = await authorize('customer:read')
+    if (!auth.user) {
+        return { status: false, message: auth.message }
     }
 
+    const parsed = getCustomersSchema.safeParse(input)
+    if (!parsed.success) {
+        return { status: false, message: parsed.error.issues[0].message }
+    }
+
+    const { query, postStatus, sort, page } = parsed.data
+    const search = query ? escapeRegex(query) : ''
+
+    const where: Prisma.CustomerWhereInput = {
+        isDeleted: false,
+        ...(search ? {
+            OR: [
+                { fullName: { contains: search, mode: 'insensitive' } },
+                { email: { contains: search, mode: 'insensitive' } },
+                { phone: { contains: search } },
+                { company: { contains: search, mode: 'insensitive' } },
+            ],
+        } : {}),
+        // Only customers that have at least one (not deleted) post in this status
+        ...(postStatus ? { posts: { some: { status: postStatus, isDeleted: false } } } : {}),
+    }
+
+    const orderBy: Record<CustomerSort, Prisma.CustomerOrderByWithRelationInput> = {
+        updated: { updatedAt: 'desc' },
+        created: { createdAt: 'desc' },
+        name: { fullName: 'asc' },
+    }
+
+    const total = await prisma.customer.count({ where })
+    const pageCount = Math.max(1, Math.ceil(total / pageLimit))
+    // A page past the end (e.g. after filtering) falls back to the last page
+    const currentPage = Math.min(page, pageCount)
+
     const customers = await prisma.customer.findMany({
-        where: { isDeleted: false },
-        orderBy: { createdAt: 'desc' },
-        include: { _count: { select: { posts: { where: { isDeleted: false } } } } },
+        where,
+        orderBy: orderBy[sort],
+        skip: (currentPage - 1) * pageLimit,
+        take: pageLimit,
+        include: {
+            _count: {
+                select: {
+                    notes: { where: { isDeleted: false } },
+                    posts: { where: { isDeleted: false } },
+                },
+            },
+        },
     })
-    return { status: true, customers }
+    return { status: true, customers, total, page: currentPage, pageCount }
 }
 
-export async function getRecentCustomers(): Promise<GetCustomersResponse> {
-    const user = await getCurrentUser()
-    if (!user) {
-        return { status: false, message: 'Bu işlem için giriş yapmalısınız' }
+export async function getRecentCustomers(): Promise<GetRecentCustomersResponse> {
+    const auth = await authorize('customer:read')
+    if (!auth.user) {
+        return { status: false, message: auth.message }
     }
 
     const customers = await prisma.customer.findMany({
@@ -99,9 +178,9 @@ export async function getRecentCustomers(): Promise<GetCustomersResponse> {
 }
 
 export async function getCustomer(input: z.input<typeof getCustomerSchema>): Promise<GetCustomerResponse> {
-    const user = await getCurrentUser()
-    if (!user) {
-        return { status: false, message: 'Bu işlem için giriş yapmalısınız' }
+    const auth = await authorize('customer:read')
+    if (!auth.user) {
+        return { status: false, message: auth.message }
     }
 
     const parsed = getCustomerSchema.safeParse(input)
@@ -140,9 +219,9 @@ export async function getCustomer(input: z.input<typeof getCustomerSchema>): Pro
 }
 
 export async function deleteCustomer(input: z.input<typeof getCustomerSchema>): Promise<DeleteCustomerResponse> {
-    const user = await getCurrentUser()
-    if (!user) {
-        return { status: false, message: 'Bu işlem için giriş yapmalısınız' }
+    const auth = await authorize('customer:delete')
+    if (!auth.user) {
+        return { status: false, message: auth.message }
     }
 
     const parsed = getCustomerSchema.safeParse(input)
@@ -168,13 +247,15 @@ export async function deleteCustomer(input: z.input<typeof getCustomerSchema>): 
     ])
 
     revalidatePath('/app/customers', 'layout')
+    revalidatePath('/app/notes', 'layout')
+    revalidatePath('/app/blogs', 'layout')
     return { status: true, message: 'Müşteri silindi', href: '/app/customers' }
 }
 
-export async function searchCustomers(input: z.input<typeof searchCustomersSchema>): Promise<GetCustomersResponse> {
-    const user = await getCurrentUser()
-    if (!user) {
-        return { status: false, message: 'Bu işlem için giriş yapmalısınız' }
+export async function searchCustomers(input: z.input<typeof searchCustomersSchema>): Promise<SearchCustomersResponse> {
+    const auth = await authorize('customer:read')
+    if (!auth.user) {
+        return { status: false, message: auth.message }
     }
 
     const parsed = searchCustomersSchema.safeParse(input)
@@ -182,9 +263,7 @@ export async function searchCustomers(input: z.input<typeof searchCustomersSchem
         return { status: false, message: parsed.error.issues[0].message }
     }
 
-    // Prisma sends `contains` to MongoDB as a regex without escaping it:
-    // '(' would crash the query and '.' would match everything
-    const query = parsed.data.query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    const query = escapeRegex(parsed.data.query)
 
     const customers = await prisma.customer.findMany({
         where: {
@@ -202,9 +281,9 @@ export async function searchCustomers(input: z.input<typeof searchCustomersSchem
 }
 
 export async function createCustomer(input: z.input<typeof createCustomerSchema>): Promise<CreateCustomerResponse> {
-    const user = await getCurrentUser()
-    if (!user) {
-        return { status: false, message: 'Bu işlem için giriş yapmalısınız' }
+    const auth = await authorize('customer:create')
+    if (!auth.user) {
+        return { status: false, message: auth.message }
     }
 
     const parsed = createCustomerSchema.safeParse(input)
@@ -228,10 +307,58 @@ export async function createCustomer(input: z.input<typeof createCustomerSchema>
         })
         // 'layout' also refreshes the customers sidebar on every /app/customers/** page
         revalidatePath('/app/customers', 'layout')
+        revalidatePath('/app/notes', 'layout')
+        revalidatePath('/app/blogs', 'layout')
         return { status: true, message: 'Müşteri oluşturuldu', customer, href: '/app/customers' }
     } catch (error) {
         if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
             return { status: false, message: 'Bu email ile kayıtlı bir müşteri zaten var' }
+        }
+        throw error
+    }
+}
+
+export async function updateCustomer(input: z.input<typeof updateCustomerSchema>): Promise<UpdateCustomerResponse> {
+    const auth = await authorize('customer:update')
+    if (!auth.user) {
+        return { status: false, message: auth.message }
+    }
+
+    const parsed = updateCustomerSchema.safeParse(input)
+    if (!parsed.success) {
+        return { status: false, message: parsed.error.issues[0].message }
+    }
+
+    const { customerId, name, surname, email, phone, company } = parsed.data
+
+    const existing = await prisma.customer.findFirst({
+        where: { id: customerId, isDeleted: false },
+        select: { id: true },
+    })
+    if (!existing) {
+        return { status: false, message: 'Müşteri bulunamadı' }
+    }
+
+    try {
+        const customer = await prisma.customer.update({
+            where: { id: customerId },
+            data: {
+                name,
+                surname,
+                fullName: `${name} ${surname}`,
+                email,
+                // Empty optional inputs are stored as null, not ''
+                phone: phone || null,
+                company: company || null,
+            },
+        })
+        revalidatePath('/app/customers', 'layout')
+        revalidatePath('/app/notes', 'layout')
+        revalidatePath('/app/blogs', 'layout')
+        return { status: true, message: 'Müşteri güncellendi', customer, href: `/app/customers/${customer.id}` }
+    } catch (error) {
+        if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+            return { status: false, message: 'Bu email ile kayıtlı başka bir müşteri var' }
         }
         throw error
     }

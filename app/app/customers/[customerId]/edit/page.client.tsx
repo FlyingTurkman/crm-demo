@@ -1,9 +1,10 @@
 'use client'
 
-export default function EditCustomerPageClient() {
+import CustomerForm from '@/components/app/customers/CustomerForm'
+import type { Customer } from '@/types'
+
+export default function EditCustomerPageClient({ customer }: { customer: Customer }) {
     return (
-        <div>
-            <h2 className='text-lg font-semibold'>Müşteriyi Düzenle</h2>
-        </div>
+        <CustomerForm customer={customer} />
     )
 }

@@ -1,7 +1,13 @@
 import NewNotePageClient from './page.client'
 
-export default function Page() {
+export default async function Page({
+    params
+}: {
+    params: Promise<{ customerId: string }>
+}) {
+    const { customerId } = await params
+
     return (
-        <NewNotePageClient />
+        <NewNotePageClient customerId={customerId} />
     )
 }

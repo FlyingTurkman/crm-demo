@@ -1,9 +1,9 @@
 'use client'
 
-export default function NewNotePageClient() {
+import NoteForm from '@/components/app/notes/NoteForm'
+
+export default function NewNotePageClient({ customerId }: { customerId: string }) {
     return (
-        <div>
-            <h2 className='text-lg font-semibold'>Yeni Not</h2>
-        </div>
+        <NoteForm customerId={customerId} />
     )
 }

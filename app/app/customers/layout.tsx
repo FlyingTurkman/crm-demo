@@ -1,8 +1,10 @@
 import { ReactNode } from 'react'
 import { cookies } from 'next/headers'
 import { getRecentCustomers } from '@/actions/customer'
+import CustomersBreadcrumb from '@/components/app/customers/CustomersBreadcrumb'
 import CustomerSearchBar from '@/components/app/customers/CustomerSearchBar'
 import CustomersSidebar from '@/components/app/customers/CustomersSidebar'
+import { Separator } from '@/components/ui/separator'
 import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar'
 
 export default async function CustomersLayout({
@@ -21,7 +23,11 @@ export default async function CustomersLayout({
             <SidebarInset>
                 <div className='flex items-center gap-2 border-b p-2'>
                     <SidebarTrigger />
-                    <CustomerSearchBar />
+                    <div className='shrink-0'>
+                        <CustomerSearchBar />
+                    </div>
+                    <Separator orientation='vertical' className='h-4' />
+                    <CustomersBreadcrumb />
                 </div>
                 {children}
             </SidebarInset>

@@ -1,9 +1,9 @@
 'use client'
 
-export default function NewBlogPageClient() {
+import PostForm from '@/components/app/posts/PostForm'
+
+export default function NewBlogPageClient({ customerId }: { customerId: string }) {
     return (
-        <div>
-            <h2 className='text-lg font-semibold'>Yeni Blog</h2>
-        </div>
+        <PostForm customerId={customerId} />
     )
 }

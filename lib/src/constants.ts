@@ -19,6 +19,9 @@ export const maxNameLength = 50
 export const maxCompanyLength = 100
 export const maxPhoneLength = 20
 
+// Max number of records fetched by a single list query (page size of every paginated list)
+export const pageLimit = 50
+
 // Customers sidebar
 export const sidebarCustomerLimit = 20
 
@@ -33,3 +36,45 @@ export const postStatusLabels = {
     inReview: 'İncelemede',
     published: 'Yayında',
 }
+
+// Post (blog) limits
+export const maxPostTitleLength = 200
+export const maxPostContentLength = 20000
+
+// Note limits
+export const maxNoteContentLength = 5000
+
+// Max size of the editor's HTML output (rawContent), guards against huge payloads
+export const maxRawContentLength = 900000
+
+// MongoDB ObjectId format (24 hex characters), checked before ids reach Prisma
+export const objectIdPattern = /^[0-9a-f]{24}$/i
+
+// Customer list sorting
+export const customerSorts = ['updated', 'created', 'name'] as const
+export const customerSortLabels = {
+    updated: 'Son güncellenen',
+    created: 'Son eklenen',
+    name: 'Ada göre (A-Z)',
+}
+
+// Blog list sorting
+export const postSorts = ['updated', 'created', 'title'] as const
+export const postSortLabels = {
+    updated: 'Son güncellenen',
+    created: 'Son eklenen',
+    title: 'Başlığa göre (A-Z)',
+}
+
+// Blogs sidebar
+export const sidebarPostLimit = 20
+
+// Note list sorting
+export const noteSorts = ['updated', 'created'] as const
+export const noteSortLabels = {
+    updated: 'Son güncellenen',
+    created: 'Son eklenen',
+}
+
+// Notes sidebar
+export const sidebarNoteLimit = 20
