@@ -328,6 +328,7 @@ flowchart LR
   - Kişinin kendi API token'ı yenilenebilir.
   - Diğer cihazlardaki açık oturumların sayısı görünür ve hepsi tek tuşla kapatılabilir.
   - **Demo hesaplarında** şifre, API token'ı ve oturum kapatma kilitlidir. Hesaplar herkese açık olduğu için bir ziyaretçi diğerlerini dışarıda bırakamaz (`lib/auth/demo.ts`).
+- **Yükleme iskeletleri:** Her sayfanın bir `loading.tsx` dosyası var ve veri gelene kadar o sayfanın şeklinde shadcn `Skeleton` gösteriliyor. Hangi iskeletin çizileceğini `RouteSkeleton` adrese bakarak seçiyor. Örneğin dashboard'dan bir müşteriye geçerken sidebar, müşteri başlığı ve içerik birlikte iskelet olarak görünür; bölüm içinde gezerken sadece değişen kısım iskelete döner.
 - **Sayfa başlıkları:** Her sayfanın kendi başlığı var (`Ahmet Yılmaz - Bloglar | CRM` gibi).
 
 ## REST API

@@ -153,6 +153,11 @@ app/app/
 - **Every `page.tsx` sets a page title — title only, no description / Open Graph (the app has no public / ad pages).** The root layout's template shows it as `<title> | CRM`.
   - Static pages: `export const metadata: Metadata = { title: 'Müşteriler' }`.
   - Pages of a record: `generateMetadata` with `getCustomerPageTitle(customerId, 'Bloglar')` / `getPostPageTitle(postId, 'Düzenle')` from `lib/data.ts` (e.g. `Ahmet Yılmaz - Bloglar`).
+- **Every route folder with a `page.tsx` (and every section layout folder) also has a `loading.tsx`** that only renders `<RouteSkeleton scope='...' />` (`components/app/skeletons/RouteSkeleton.tsx`). It picks the skeleton of the target page from the URL; `scope` tells it which layouts are already on screen:
+  - `'app'` — `app/app/loading.tsx` (only the main menu above): also draws the section sidebar / bar and the customer header.
+  - `'section'` — section roots (`customers`, `blogs`, `notes`, `admin`): also draws the customer header for `/app/customers/<id>/**`.
+  - `'content'` — every deeper folder: only the page.
+  - A new page gets a `loading.tsx` and, if its shape is new, a skeleton in `components/app/skeletons/` and a case in `getPageSkeleton`.
 - **Server components read a record with the `cache()`d getters in `lib/data.ts`** (`getCustomerCached`, `getPostCached`, `getNoteCached`) so a layout, its page and `generateMetadata` share one database query per request.
 
 ```tsx
@@ -195,7 +200,8 @@ export default function AppPageClient() {
   toast.success(result.message ?? 'Giriş yapıldı')
   ```
 - Field-level validation errors from `react-hook-form` stay inline under the field (`FieldError`), not in a toast.
-- **Loading animations use shadcn's `Spinner`** (`@/components/ui/spinner`) — never a custom spinner or a text-only loading state. In buttons, show it before the label and disable the button while loading:
+- **Page loading uses shadcn's `Skeleton`** (through the `loading.tsx` files above), shaped like the page that is coming.
+- **Loading animations inside a page (buttons, search results, ...) use shadcn's `Spinner`** (`@/components/ui/spinner`) — never a custom spinner or a text-only loading state. In buttons, show it before the label and disable the button while loading:
 
   ```tsx
   <Button type='submit' disabled={isSubmitting}>
