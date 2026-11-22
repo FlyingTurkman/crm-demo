@@ -16,6 +16,7 @@ import {
     apiBasePath,
     demoAccounts,
     emailPattern,
+    githubApiDocsUrl,
     githubReadmeUrl,
     githubRepoUrl,
     maxPasswordLength,
@@ -123,6 +124,14 @@ export default function LoginPageClient() {
                         className={buttonVariants({ variant: 'secondary' })}
                     >
                         <IoDocumentText /> README
+                    </a>
+                    <a
+                        href={githubApiDocsUrl}
+                        target='_blank'
+                        rel='noopener noreferrer'
+                        className={buttonVariants({ variant: 'secondary' })}
+                    >
+                        <IoCode /> API Dokümanı
                     </a>
                 </div>
             </section>

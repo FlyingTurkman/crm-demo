@@ -86,7 +86,8 @@
   - Resource-based RESTful paths: `GET/POST /customers`, `GET/PATCH/DELETE /customers/{id}`, children under their parent (`/customers/{id}/posts`, `/customers/{id}/notes`). `PATCH` is a partial update: load the record with its get action, merge the body over it, then call the update action. Path ids always override body ids.
   - Route handlers contain **no business logic**: they call the existing Server Actions (so zod, `authorize`, soft delete, `pageLimit` and `revalidatePath` are shared) and use the helpers in `lib/api.ts` (`requireApiToken`, `readJsonBody`, `getQueryParam`, `withRichText`, `apiResult`). Every handler starts with `requireApiToken(request)`.
   - `apiResult` maps action results to HTTP codes (201 on create, 400 validation, 401/403 from `authorize` messages, 404 `... bulunamadı`, 409 duplicates) and strips the panel-only `href`.
-  - A new action that should be reachable from the API gets a route here and a row in the README's REST API table.
+  - CORS is open to every origin (`*`) via `headers()` in `next.config.ts` for `/api/v1/:path*`. This is safe only because the API never reads cookies: never add `Access-Control-Allow-Credentials` or cookie auth to the API.
+  - A new action that should be reachable from the API gets a route here and is documented in `api.md` (endpoint table, and body fields / list params if new). `api.md` holds only API usage docs; the README just links to it.
 - Put actions in `actions/` at the project root, one file per model (e.g. `actions/customer.ts`, `actions/post.ts`), each starting with `'use server'`.
 - Declare actions as `export async function` (no arrow functions).
 - After a mutation (create / update / soft delete), call `revalidatePath` for the affected pages.

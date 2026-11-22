@@ -1,0 +1,1411 @@
+# CRM Demo REST API
+
+Müşterileri, blogları, notları ve sistem kullanıcılarını yönetmek için RESTful JSON API.
+
+| | |
+|---|---|
+| **Temel adres** | `https://crm-demo-plum.vercel.app/api/v1` |
+| **Yerel adres** | `http://localhost:3000/api/v1` |
+| **Kimlik doğrulama** | `Authorization: Bearer <token>` |
+| **Gövde formatı** | JSON (`Content-Type: application/json`) |
+| **CORS** | Her origin'e açık (tarayıcıdan, Postman'den, sunucudan çağrılabilir) |
+
+---
+
+## İçindekiler
+
+- [Hızlı başlangıç](#hızlı-başlangıç)
+- [Kimlik doğrulama](#kimlik-doğrulama)
+- [CORS](#cors)
+- [Yanıt formatı ve hatalar](#yanıt-formatı-ve-hatalar)
+- [Ortak kurallar](#ortak-kurallar)
+- [Hesap](#hesap)
+  - [`GET /me`](#get-me)
+  - [`GET /dashboard`](#get-dashboard)
+- [Müşteriler](#müşteriler)
+  - [`GET /customers`](#get-customers)
+  - [`POST /customers`](#post-customers)
+  - [`GET /customers/{customerId}`](#get-customerscustomerid)
+  - [`PATCH /customers/{customerId}`](#patch-customerscustomerid)
+  - [`DELETE /customers/{customerId}`](#delete-customerscustomerid)
+- [Bloglar](#bloglar)
+  - [`GET /customers/{customerId}/posts`](#get-customerscustomeridposts)
+  - [`POST /customers/{customerId}/posts`](#post-customerscustomeridposts)
+  - [`GET /posts`](#get-posts)
+  - [`GET /posts/{postId}`](#get-postspostid)
+  - [`PATCH /posts/{postId}`](#patch-postspostid)
+  - [`DELETE /posts/{postId}`](#delete-postspostid)
+- [Notlar](#notlar)
+  - [`GET /customers/{customerId}/notes`](#get-customerscustomeridnotes)
+  - [`POST /customers/{customerId}/notes`](#post-customerscustomeridnotes)
+  - [`GET /notes`](#get-notes)
+  - [`GET /notes/{noteId}`](#get-notesnoteid)
+  - [`PATCH /notes/{noteId}`](#patch-notesnoteid)
+  - [`DELETE /notes/{noteId}`](#delete-notesnoteid)
+- [Kullanıcılar (sadece admin)](#kullanıcılar-sadece-admin)
+  - [`GET /users`](#get-users)
+  - [`POST /users`](#post-users)
+  - [`GET /users/{userId}`](#get-usersuserid)
+  - [`PATCH /users/{userId}`](#patch-usersuserid)
+  - [`DELETE /users/{userId}`](#delete-usersuserid)
+  - [`GET /users/{userId}/api-token`](#get-usersuseridapi-token)
+  - [`POST /users/{userId}/api-token`](#post-usersuseridapi-token)
+- [Veri modelleri](#veri-modelleri)
+
+---
+
+## Hızlı başlangıç
+
+Aşağıdaki iki satır, demo admin token'ıyla müşteri listesinin ilk sayfasını getirir:
+
+```bash
+TOKEN=crm_demo_admin_api_token
+API=https://crm-demo-plum.vercel.app/api/v1
+
+curl -H "Authorization: Bearer $TOKEN" "$API/customers"
+```
+
+Tarayıcı konsolundan (herhangi bir sitede) de aynı istek atılabilir:
+
+```js
+const response = await fetch('https://crm-demo-plum.vercel.app/api/v1/customers', {
+    headers: { Authorization: 'Bearer crm_demo_admin_api_token' },
+})
+console.log(await response.json())
+```
+
+---
+
+## Kimlik doğrulama
+
+Her istekte bir API token'ı `Authorization` başlığıyla gönderilir:
+
+```http
+Authorization: Bearer crm_demo_admin_api_token
+```
+
+İstek, token'ın sahibi olan kullanıcının rolüyle çalışır.
+
+| Rol | Yapabildikleri |
+|---|---|
+| `admin` | Her şey |
+| `moderator` | Okuma, ekleme, güncelleme. Silme (`DELETE`) ve `/users/**` istekleri `403` döner. |
+
+### Demo token'ları
+
+| Hesap | Rol | Token |
+|---|---|---|
+| `admin@testmail.com` | `admin` | `crm_demo_admin_api_token` |
+| `moderator@testmail.com` | `moderator` | `crm_demo_moderator_api_token` |
+
+Demo verileri herkese açıktır ve zaman zaman sıfırlanabilir.
+
+### Token hakkında
+
+- Format: `crm_` + 128 karakterlik rastgele değer. JWT değildir, içinden bilgi okunamaz.
+- Her kullanıcının tek bir aktif token'ı vardır. Yenisi üretilince eskisi anında geçersiz olur.
+- Token sadece üretildiği anda bir kez gösterilir (sunucu yalnızca hash'ini saklar).
+- Token'ınızı panelde **Profilim** sayfasından yenileyebilirsiniz.
+- API, panelin oturum çerezini kabul etmez; sadece `Authorization` başlığına bakar.
+
+### Token hataları
+
+| Durum | Kod | Mesaj |
+|---|---|---|
+| Başlık yok ya da `Bearer` ile başlamıyor | `401` | `API token gerekli: Authorization: Bearer <token>` |
+| Token yanlış, yenilenmiş ya da kullanıcı silinmiş | `401` | `Bu işlem için giriş yapmalısınız` (`/me` için: `Geçersiz API token`) |
+| Rolün bu işleme yetkisi yok | `403` | `Bu işlem için yetkiniz yok` |
+
+`401` yanıtları `WWW-Authenticate: Bearer` başlığı da içerir.
+
+---
+
+## CORS
+
+API her origin'den çağrılabilir. Bütün `/api/v1/**` yanıtları şu başlıkları içerir:
+
+```http
+Access-Control-Allow-Origin: *
+Access-Control-Allow-Methods: GET, POST, PATCH, DELETE, OPTIONS
+Access-Control-Allow-Headers: Authorization, Content-Type
+Access-Control-Expose-Headers: WWW-Authenticate
+Access-Control-Max-Age: 86400
+```
+
+- Tarayıcının gönderdiği ön kontrol (`OPTIONS`) isteği `204` ile yanıtlanır ve 1 gün önbellekte tutulur.
+- Çerez kullanılmadığı için `credentials: 'include'` gerekmez. Gönderilse de API çerezi okumaz.
+
+---
+
+## Yanıt formatı ve hatalar
+
+Her yanıt bir JSON nesnesidir ve `status` alanı içerir.
+
+**Başarılı:**
+
+```json
+{
+    "status": true,
+    "message": "Müşteri oluşturuldu",
+    "customer": { "id": "6b0369e4e0b8722fcddf2eb0", "...": "..." }
+}
+```
+
+**Hatalı:**
+
+```json
+{
+    "status": false,
+    "message": "Müşteri bulunamadı"
+}
+```
+
+- `status`: İşlem başarılıysa `true`.
+- `message`: Türkçe, kullanıcıya gösterilebilir mesaj. Hatalarda her zaman, başarılı işlemlerde sadece değişiklik yapan isteklerde bulunur.
+- Diğer alanlar (`customer`, `posts`, `stats`, ...) her uç noktanın bölümünde yazıyor.
+
+### Durum kodları
+
+| Kod | Anlamı | Örnek mesaj |
+|---|---|---|
+| `200` | Başarılı okuma, güncelleme ya da silme | |
+| `201` | Kayıt oluşturuldu | `Müşteri oluşturuldu` |
+| `400` | Geçersiz girdi, geçersiz JSON ya da geçersiz id | `Ad zorunludur`, `Geçersiz müşteri` |
+| `401` | Token yok ya da geçersiz | `Bu işlem için giriş yapmalısınız` |
+| `403` | Rolün yetkisi yok | `Bu işlem için yetkiniz yok` |
+| `404` | Kayıt yok ya da silinmiş | `Müşteri bulunamadı` |
+| `409` | Email başka bir kayıtta kullanılıyor | `Bu email ile kayıtlı bir müşteri zaten var` |
+
+Doğrulama hatalarında sadece ilk hatanın mesajı döner.
+
+---
+
+## Ortak kurallar
+
+### Kimlikler (id)
+
+Bütün kimlikler 24 karakterlik onaltılık metinlerdir (MongoDB ObjectId), örneğin `6b0369e4e0b8722fcddf2eb0`. Bu biçimde olmayan bir id `400` döner (`Geçersiz müşteri`, `Geçersiz blog`, ...).
+
+### Sayfalama
+
+Liste uç noktaları sayfa başına **en fazla 50** kayıt döner ve yanıta sayfalama bilgisi ekler:
+
+```json
+{ "status": true, "customers": [ ... ], "total": 60, "page": 1, "pageCount": 2 }
+```
+
+| Alan | Açıklama |
+|---|---|
+| `total` | Filtreye uyan toplam kayıt sayısı |
+| `page` | Dönen sayfa |
+| `pageCount` | Toplam sayfa sayısı (kayıt yoksa `1`) |
+
+`page` son sayfadan büyükse son sayfa döner.
+
+### Ortak query parametreleri
+
+Her uç noktanın bölümünde hangilerini aldığı ayrıca yazıyor.
+
+| Parametre | Değerler | Açıklama |
+|---|---|---|
+| `q` | metin, en fazla 100 karakter | Arama (büyük / küçük harf duyarsız) |
+| `page` | `1`, `2`, ... | Sayfa numarası, varsayılan `1` |
+| `sort` | `updated`, `created`, ... | Sıralama, varsayılan `updated` (son güncellenen önce) |
+| `period` | `today`, `week`, `month` | Sadece bugün / son 7 gün / son 30 günde oluşturulanlar |
+
+Geçersiz bir değer yok sayılmaz, `400` döner (`Geçersiz sıralama`, `Geçersiz tarih aralığı`, ...).
+
+### İstek gövdesi
+
+- Gövde bir JSON **nesnesi** olmalıdır; aksi halde `400`: `İstek gövdesi geçerli bir JSON nesnesi olmalıdır`.
+- **`POST`:** Zorunlu alanların hepsi gönderilir.
+- **`PATCH` kısmi günceller:** Sadece gönderilen alanlar değişir, diğerleri olduğu gibi kalır.
+- Opsiyonel bir alanı boşaltmak için `null` gönderin (`"company": null`).
+- Metin alanlarının başındaki ve sonundaki boşluklar kırpılır.
+- Kimlikler URL'den alınır. Gövdedeki `customerId`, `postId`, `noteId`, `userId` alanları yok sayılır.
+- Tanımlanmamış alanlar yok sayılır.
+
+### Zengin metin (blog ve not içeriği)
+
+Blog ve notların içeriği iki alanda tutulur:
+
+| Alan | İçerik |
+|---|---|
+| `content` | Düz metin (arama ve önizleme için) |
+| `rawContent` | HTML (panelde bu gösterilir) |
+
+İstekte ikisinden birini göndermeniz yeterli:
+
+- Sadece `content` gönderilirse her satır bir `<div>` olacak şekilde HTML üretilir: `"A\nB"` → `<div>A</div><div>B</div>`.
+- Sadece `rawContent` gönderilirse düz metin HTML'den çıkarılır.
+- HTML her zaman sunucuda temizlenir; `<script>`, `onclick` gibi tehlikeli etiketler ve öznitelikler kaydedilmez.
+
+### Silme
+
+`DELETE` kaydı kalıcı olarak silmez, gizler (soft delete). Silinen kayıt bir daha hiçbir uç noktada görünmez ve `404` döner. Silme işlemleri sadece `admin` içindir.
+
+---
+
+## Hesap
+
+### `GET /me`
+
+Token'ın sahibi olan kullanıcıyı döner. Token'ı denemek için en kolay istek budur.
+
+**Yetki:** admin, moderator
+
+**İstek:**
+
+```bash
+curl -H "Authorization: Bearer $TOKEN" "$API/me"
+```
+
+**Yanıt `200`:**
+
+```json
+{
+    "status": true,
+    "user": {
+        "id": "6b0065ebbfa5807b0f9326d1",
+        "name": "Test",
+        "surname": "Kullanıcı",
+        "fullName": "Test Kullanıcı",
+        "email": "a***@testmail.com",
+        "password": "***",
+        "role": "admin",
+        "createdAt": "2026-11-20T15:23:19.637Z",
+        "updatedAt": "2026-11-22T15:00:08.219Z"
+    }
+}
+```
+
+`email` maskelenir, `password` her zaman `***` döner.
+
+---
+
+### `GET /dashboard`
+
+Panel ana sayfasındaki istatistikler.
+
+**Yetki:** admin, moderator
+
+**Query parametreleri:**
+
+| Parametre | Zorunlu | Değerler | Açıklama |
+|---|---|---|---|
+| `date` | hayır | `YYYY-MM-DD` | İstatistiklerin hesaplanacağı gün. Varsayılan bugün; ileri bir tarih bugüne çekilir. |
+| `period` | hayır | `today` (varsayılan), `week`, `month` | "Son eklenenler" listelerinin ve `inPeriod` sayılarının aralığı (`date` ile biter) |
+
+**İstek:**
+
+```bash
+curl -H "Authorization: Bearer $TOKEN" "$API/dashboard?period=week"
+```
+
+**Yanıt `200`:**
+
+```json
+{
+    "status": true,
+    "stats": {
+        "customers": { "total": 60, "onDay": 0, "inPeriod": 7 },
+        "posts": {
+            "total": 141,
+            "onDay": 0,
+            "inPeriod": 50,
+            "byStatus": { "draft": 44, "inReview": 33, "published": 64 }
+        },
+        "notes": { "total": 97, "onDay": 0, "inPeriod": 30 },
+        "recentCustomers": [ { "id": "...", "fullName": "Ayşe Yılmaz", "...": "..." } ],
+        "recentPosts": [ { "id": "...", "title": "...", "customer": { "...": "..." } } ],
+        "recentNotes": [ { "id": "...", "content": "...", "customer": { "...": "..." } } ],
+        "topCustomers": [ { "customer": { "id": "...", "fullName": "Zeynep Koç", "...": "..." }, "postCount": 8 } ]
+    }
+}
+```
+
+| Alan | Açıklama |
+|---|---|
+| `total` | `date` gününün sonuna kadar oluşturulan kayıt sayısı |
+| `onDay` | Sadece `date` gününde oluşturulanlar |
+| `inPeriod` | `period` aralığında oluşturulanlar |
+| `byStatus` | Blogların duruma göre dağılımı |
+| `recentCustomers`, `recentPosts`, `recentNotes` | `period` aralığında eklenen son 5 kayıt (blog ve notlarda `customer` dahil) |
+| `topCustomers` | En çok blogu olan 5 müşteri |
+
+---
+
+## Müşteriler
+
+Müşteri nesnesinin alanları için bkz. [Customer](#customer).
+
+### `GET /customers`
+
+Müşteri listesi.
+
+**Yetki:** admin, moderator
+
+**Query parametreleri:**
+
+| Parametre | Zorunlu | Değerler | Açıklama |
+|---|---|---|---|
+| `q` | hayır | metin | Ad soyad, email, telefon ya da firmada arar |
+| `postStatus` | hayır | `draft`, `inReview`, `published` | Sadece bu durumda en az bir blogu olan müşteriler |
+| `period` | hayır | `today`, `week`, `month` | Oluşturulma tarihi |
+| `sort` | hayır | `updated` (varsayılan), `created`, `name` | `name`: ada göre A→Z |
+| `page` | hayır | `1`, `2`, ... | Sayfa |
+
+**İstek:**
+
+```bash
+curl -H "Authorization: Bearer $TOKEN" "$API/customers?q=ahmet&sort=name&page=1"
+```
+
+**Yanıt `200`:**
+
+```json
+{
+    "status": true,
+    "customers": [
+        {
+            "id": "6ae85187cb49afe9b2c383b1",
+            "name": "Ahmet",
+            "surname": "Avcı",
+            "fullName": "Ahmet Avcı",
+            "email": "ahmet.avci@ankaradis.com.tr",
+            "phone": "0533 570 45 56",
+            "company": "Ankara Diş Polikliniği",
+            "isDeleted": false,
+            "createdAt": "2026-11-02T09:01:59.292Z",
+            "updatedAt": "2026-11-22T13:41:04.462Z",
+            "_count": { "notes": 1, "posts": 2 }
+        }
+    ],
+    "total": 1,
+    "page": 1,
+    "pageCount": 1
+}
+```
+
+`_count`: müşterinin not ve blog sayısı.
+
+---
+
+### `POST /customers`
+
+Yeni müşteri ekler.
+
+**Yetki:** admin, moderator
+
+**Gövde:**
+
+| Alan | Tip | Zorunlu | Kural |
+|---|---|---|---|
+| `name` | string | evet | 1–50 karakter |
+| `surname` | string | evet | 1–50 karakter |
+| `email` | string | evet | Geçerli email; başka bir müşteride kullanılıyorsa `409` |
+| `phone` | string | hayır | En fazla 20 karakter |
+| `company` | string | hayır | En fazla 100 karakter |
+
+**İstek:**
+
+```bash
+curl -X POST "$API/customers" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Ayşe","surname":"Demir","email":"ayse@example.com","company":"Demir Ltd."}'
+```
+
+**Yanıt `201`:**
+
+```json
+{
+    "status": true,
+    "message": "Müşteri oluşturuldu",
+    "customer": {
+        "id": "6b0369e4e0b8722fcddf2eb0",
+        "name": "Ayşe",
+        "surname": "Demir",
+        "fullName": "Ayşe Demir",
+        "email": "ayse@example.com",
+        "phone": null,
+        "company": "Demir Ltd.",
+        "isDeleted": false,
+        "createdAt": "2026-11-22T22:17:08.874Z",
+        "updatedAt": "2026-11-22T22:17:08.874Z"
+    }
+}
+```
+
+**Hatalar:**
+
+| Kod | Mesaj |
+|---|---|
+| `400` | `Ad zorunludur`, `Geçerli bir email girin`, ... |
+| `409` | `Bu email ile kayıtlı bir müşteri zaten var` |
+
+---
+
+### `GET /customers/{customerId}`
+
+Tek bir müşteri; not / blog sayıları ve blogların durum dağılımıyla.
+
+**Yetki:** admin, moderator
+
+**Yol parametreleri:**
+
+| Parametre | Açıklama |
+|---|---|
+| `customerId` | Müşterinin id'si |
+
+**İstek:**
+
+```bash
+curl -H "Authorization: Bearer $TOKEN" "$API/customers/6b0369e4e0b8722fcddf2eb0"
+```
+
+**Yanıt `200`:**
+
+```json
+{
+    "status": true,
+    "customer": {
+        "id": "6b0369e4e0b8722fcddf2eb0",
+        "name": "Ayşe",
+        "surname": "Demir",
+        "fullName": "Ayşe Demir",
+        "email": "ayse@example.com",
+        "phone": null,
+        "company": "Demir Ltd.",
+        "isDeleted": false,
+        "createdAt": "2026-11-22T22:17:08.874Z",
+        "updatedAt": "2026-11-22T22:17:08.874Z",
+        "_count": { "notes": 0, "posts": 0 }
+    },
+    "postStatusCounts": { "draft": 0, "inReview": 0, "published": 0 }
+}
+```
+
+**Hatalar:** `400` `Geçersiz müşteri` (id biçimi yanlış), `404` `Müşteri bulunamadı`.
+
+---
+
+### `PATCH /customers/{customerId}`
+
+Müşteriyi günceller. Sadece gönderilen alanlar değişir.
+
+**Yetki:** admin, moderator
+
+**Yol parametreleri:** `customerId`
+
+**Gövde:** [`POST /customers`](#post-customers) ile aynı alanlar, hepsi opsiyonel. `phone` ve `company` `null` gönderilerek boşaltılır.
+
+**İstek:**
+
+```bash
+curl -X PATCH "$API/customers/6b0369e4e0b8722fcddf2eb0" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"phone":"+90 555 000 00 00","company":null}'
+```
+
+**Yanıt `200`:**
+
+```json
+{
+    "status": true,
+    "message": "Müşteri güncellendi",
+    "customer": {
+        "id": "6b0369e4e0b8722fcddf2eb0",
+        "name": "Ayşe",
+        "surname": "Demir",
+        "fullName": "Ayşe Demir",
+        "email": "ayse@example.com",
+        "phone": "+90 555 000 00 00",
+        "company": null,
+        "isDeleted": false,
+        "createdAt": "2026-11-22T22:17:08.874Z",
+        "updatedAt": "2026-11-22T22:17:13.634Z"
+    }
+}
+```
+
+**Hatalar:** `400`, `404` `Müşteri bulunamadı`, `409` (email başka bir müşteride).
+
+---
+
+### `DELETE /customers/{customerId}`
+
+Müşteriyi, bütün bloglarını ve notlarını birlikte siler.
+
+**Yetki:** admin
+
+**Yol parametreleri:** `customerId`
+
+**İstek:**
+
+```bash
+curl -X DELETE -H "Authorization: Bearer $TOKEN" "$API/customers/6b0369e4e0b8722fcddf2eb0"
+```
+
+**Yanıt `200`:**
+
+```json
+{ "status": true, "message": "Müşteri silindi" }
+```
+
+**Hatalar:** `403` (moderatör), `404` `Müşteri bulunamadı`.
+
+---
+
+## Bloglar
+
+Blog nesnesinin alanları için bkz. [Post](#post). Blog durumları: `draft` (taslak), `inReview` (incelemede), `published` (yayında).
+
+### `GET /customers/{customerId}/posts`
+
+Bir müşterinin blogları.
+
+**Yetki:** admin, moderator
+
+**Yol parametreleri:** `customerId`
+
+**Query parametreleri:**
+
+| Parametre | Zorunlu | Değerler | Açıklama |
+|---|---|---|---|
+| `q` | hayır | metin | Başlık ve içerikte arar |
+| `status` | hayır | `draft`, `inReview`, `published` | Duruma göre filtre |
+| `sort` | hayır | `updated` (varsayılan), `created`, `title` | `title`: başlığa göre A→Z |
+| `page` | hayır | `1`, `2`, ... | Sayfa |
+
+**İstek:**
+
+```bash
+curl -H "Authorization: Bearer $TOKEN" "$API/customers/6b0369e4e0b8722fcddf2eb0/posts?status=draft"
+```
+
+**Yanıt `200`:**
+
+```json
+{
+    "status": true,
+    "posts": [
+        {
+            "id": "6b0369ece0b8722fcddf2eb2",
+            "title": "Yeni ürünümüz",
+            "content": "Birinci satır\nİkinci satır",
+            "rawContent": "<div>Birinci satır</div><div>İkinci satır</div>",
+            "status": "draft",
+            "customerId": "6b0369e4e0b8722fcddf2eb0",
+            "isDeleted": false,
+            "createdAt": "2026-11-22T22:17:16.313Z",
+            "updatedAt": "2026-11-22T22:17:16.313Z"
+        }
+    ],
+    "total": 1,
+    "page": 1,
+    "pageCount": 1
+}
+```
+
+**Hatalar:** `400` `Geçersiz müşteri`. Müşteri yoksa ya da silinmişse boş liste döner.
+
+---
+
+### `POST /customers/{customerId}/posts`
+
+Müşteriye blog ekler.
+
+**Yetki:** admin, moderator
+
+**Yol parametreleri:** `customerId`
+
+**Gövde:**
+
+| Alan | Tip | Zorunlu | Kural |
+|---|---|---|---|
+| `title` | string | evet | 1–200 karakter |
+| `content` | string | `content` ya da `rawContent` | Düz metin, en fazla 20.000 karakter |
+| `rawContent` | string | `content` ya da `rawContent` | HTML ([zengin metin](#zengin-metin-blog-ve-not-içeriği)) |
+| `status` | string | hayır | `draft` (varsayılan), `inReview`, `published` |
+
+**İstek:**
+
+```bash
+curl -X POST "$API/customers/6b0369e4e0b8722fcddf2eb0/posts" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"title":"Yeni ürünümüz","content":"Birinci satır\nİkinci satır"}'
+```
+
+**Yanıt `201`:**
+
+```json
+{
+    "status": true,
+    "message": "Blog oluşturuldu",
+    "post": {
+        "id": "6b0369ece0b8722fcddf2eb2",
+        "title": "Yeni ürünümüz",
+        "content": "Birinci satır\nİkinci satır",
+        "rawContent": "<div>Birinci satır</div><div>İkinci satır</div>",
+        "status": "draft",
+        "customerId": "6b0369e4e0b8722fcddf2eb0",
+        "isDeleted": false,
+        "createdAt": "2026-11-22T22:17:16.313Z",
+        "updatedAt": "2026-11-22T22:17:16.313Z"
+    }
+}
+```
+
+**Hatalar:** `400` (`Başlık zorunludur`, `İçerik zorunludur`, ...), `404` `Müşteri bulunamadı`.
+
+---
+
+### `GET /posts`
+
+Bütün müşterilerin blogları. Her blogda sahibi olan müşteri (`customer`) de döner.
+
+**Yetki:** admin, moderator
+
+**Query parametreleri:**
+
+| Parametre | Zorunlu | Değerler | Açıklama |
+|---|---|---|---|
+| `q` | hayır | metin | Başlık ve içerikte arar |
+| `status` | hayır | `draft`, `inReview`, `published` | Duruma göre filtre |
+| `period` | hayır | `today`, `week`, `month` | Oluşturulma tarihi |
+| `sort` | hayır | `updated` (varsayılan), `created`, `title` | Sıralama |
+| `page` | hayır | `1`, `2`, ... | Sayfa |
+
+**İstek:**
+
+```bash
+curl -H "Authorization: Bearer $TOKEN" "$API/posts?status=published&page=2"
+```
+
+**Yanıt `200`:**
+
+```json
+{
+    "status": true,
+    "posts": [
+        {
+            "id": "6b0369ece0b8722fcddf2eb2",
+            "title": "Yeni ürünümüz",
+            "content": "Birinci satır\nİkinci satır",
+            "rawContent": "<div>Birinci satır</div><div>İkinci satır</div>",
+            "status": "published",
+            "customerId": "6b0369e4e0b8722fcddf2eb0",
+            "isDeleted": false,
+            "createdAt": "2026-11-22T22:17:16.313Z",
+            "updatedAt": "2026-11-22T22:17:20.563Z",
+            "customer": {
+                "id": "6b0369e4e0b8722fcddf2eb0",
+                "fullName": "Ayşe Demir",
+                "...": "Customer alanları"
+            }
+        }
+    ],
+    "total": 65,
+    "page": 2,
+    "pageCount": 2
+}
+```
+
+---
+
+### `GET /posts/{postId}`
+
+Tek bir blog.
+
+**Yetki:** admin, moderator
+
+**Yol parametreleri:** `postId`
+
+**İstek:**
+
+```bash
+curl -H "Authorization: Bearer $TOKEN" "$API/posts/6b0369ece0b8722fcddf2eb2"
+```
+
+**Yanıt `200`:**
+
+```json
+{
+    "status": true,
+    "post": {
+        "id": "6b0369ece0b8722fcddf2eb2",
+        "title": "Yeni ürünümüz",
+        "content": "Birinci satır\nİkinci satır",
+        "rawContent": "<div>Birinci satır</div><div>İkinci satır</div>",
+        "status": "published",
+        "customerId": "6b0369e4e0b8722fcddf2eb0",
+        "isDeleted": false,
+        "createdAt": "2026-11-22T22:17:16.313Z",
+        "updatedAt": "2026-11-22T22:17:20.563Z"
+    }
+}
+```
+
+**Hatalar:** `400` `Geçersiz blog`, `404` `Blog bulunamadı`.
+
+---
+
+### `PATCH /posts/{postId}`
+
+Blogu günceller. Sadece gönderilen alanlar değişir.
+
+**Yetki:** admin, moderator
+
+**Yol parametreleri:** `postId`
+
+**Gövde:** [`POST /customers/{customerId}/posts`](#post-customerscustomeridposts) ile aynı alanlar, hepsi opsiyonel.
+
+Gövdede **sadece** `status` varsa yalnızca blogun durumu değişir (başlık ve içerik hiç işlenmez). Mesaj `Blog durumu güncellendi` olur.
+
+**İstek (yayına alma):**
+
+```bash
+curl -X PATCH "$API/posts/6b0369ece0b8722fcddf2eb2" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"status":"published"}'
+```
+
+**İstek (başlık değiştirme):**
+
+```bash
+curl -X PATCH "$API/posts/6b0369ece0b8722fcddf2eb2" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"title":"Yeni başlık"}'
+```
+
+**Yanıt `200`:**
+
+```json
+{
+    "status": true,
+    "message": "Blog güncellendi",
+    "post": {
+        "id": "6b0369ece0b8722fcddf2eb2",
+        "title": "Yeni başlık",
+        "content": "Birinci satır\nİkinci satır",
+        "rawContent": "<div>Birinci satır</div><div>İkinci satır</div>",
+        "status": "published",
+        "customerId": "6b0369e4e0b8722fcddf2eb0",
+        "isDeleted": false,
+        "createdAt": "2026-11-22T22:17:16.313Z",
+        "updatedAt": "2026-11-22T22:17:20.563Z"
+    }
+}
+```
+
+**Hatalar:** `400` (`Geçersiz durum`, `Başlık zorunludur`, ...), `404` `Blog bulunamadı`.
+
+---
+
+### `DELETE /posts/{postId}`
+
+Blogu siler.
+
+**Yetki:** admin
+
+**Yol parametreleri:** `postId`
+
+**İstek:**
+
+```bash
+curl -X DELETE -H "Authorization: Bearer $TOKEN" "$API/posts/6b0369ece0b8722fcddf2eb2"
+```
+
+**Yanıt `200`:**
+
+```json
+{ "status": true, "message": "Blog silindi" }
+```
+
+**Hatalar:** `403` (moderatör), `404` `Blog bulunamadı`.
+
+---
+
+## Notlar
+
+Not nesnesinin alanları için bkz. [Note](#note).
+
+### `GET /customers/{customerId}/notes`
+
+Bir müşterinin notları.
+
+**Yetki:** admin, moderator
+
+**Yol parametreleri:** `customerId`
+
+**Query parametreleri:**
+
+| Parametre | Zorunlu | Değerler | Açıklama |
+|---|---|---|---|
+| `q` | hayır | metin | Not içeriğinde arar |
+| `sort` | hayır | `updated` (varsayılan), `created` | Sıralama |
+| `page` | hayır | `1`, `2`, ... | Sayfa |
+
+**İstek:**
+
+```bash
+curl -H "Authorization: Bearer $TOKEN" "$API/customers/6b0369e4e0b8722fcddf2eb0/notes"
+```
+
+**Yanıt `200`:**
+
+```json
+{
+    "status": true,
+    "notes": [
+        {
+            "id": "6b0369f4e0b8722fcddf2eb3",
+            "content": "Müşteri geri arama istedi",
+            "rawContent": "<div>Müşteri geri arama istedi</div>",
+            "customerId": "6b0369e4e0b8722fcddf2eb0",
+            "isDeleted": false,
+            "createdAt": "2026-11-22T22:17:24.322Z",
+            "updatedAt": "2026-11-22T22:17:24.322Z"
+        }
+    ],
+    "total": 1,
+    "page": 1,
+    "pageCount": 1
+}
+```
+
+**Hatalar:** `400` `Geçersiz müşteri`. Müşteri yoksa ya da silinmişse boş liste döner.
+
+---
+
+### `POST /customers/{customerId}/notes`
+
+Müşteriye not ekler.
+
+**Yetki:** admin, moderator
+
+**Yol parametreleri:** `customerId`
+
+**Gövde:**
+
+| Alan | Tip | Zorunlu | Kural |
+|---|---|---|---|
+| `content` | string | `content` ya da `rawContent` | Düz metin, en fazla 5.000 karakter |
+| `rawContent` | string | `content` ya da `rawContent` | HTML ([zengin metin](#zengin-metin-blog-ve-not-içeriği)) |
+
+**İstek:**
+
+```bash
+curl -X POST "$API/customers/6b0369e4e0b8722fcddf2eb0/notes" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"content":"Müşteri geri arama istedi"}'
+```
+
+**Yanıt `201`:**
+
+```json
+{
+    "status": true,
+    "message": "Not oluşturuldu",
+    "note": {
+        "id": "6b0369f4e0b8722fcddf2eb3",
+        "content": "Müşteri geri arama istedi",
+        "rawContent": "<div>Müşteri geri arama istedi</div>",
+        "customerId": "6b0369e4e0b8722fcddf2eb0",
+        "isDeleted": false,
+        "createdAt": "2026-11-22T22:17:24.322Z",
+        "updatedAt": "2026-11-22T22:17:24.322Z"
+    }
+}
+```
+
+**Hatalar:** `400` `Not zorunludur`, `404` `Müşteri bulunamadı`.
+
+---
+
+### `GET /notes`
+
+Bütün müşterilerin notları. Her notta sahibi olan müşteri (`customer`) de döner.
+
+**Yetki:** admin, moderator
+
+**Query parametreleri:**
+
+| Parametre | Zorunlu | Değerler | Açıklama |
+|---|---|---|---|
+| `q` | hayır | metin | Not içeriğinde arar |
+| `period` | hayır | `today`, `week`, `month` | Oluşturulma tarihi |
+| `sort` | hayır | `updated` (varsayılan), `created` | Sıralama |
+| `page` | hayır | `1`, `2`, ... | Sayfa |
+
+**İstek:**
+
+```bash
+curl -H "Authorization: Bearer $TOKEN" "$API/notes?period=month"
+```
+
+**Yanıt `200`:**
+
+```json
+{
+    "status": true,
+    "notes": [
+        {
+            "id": "6b0369f4e0b8722fcddf2eb3",
+            "content": "Müşteri geri arama istedi",
+            "rawContent": "<div>Müşteri geri arama istedi</div>",
+            "customerId": "6b0369e4e0b8722fcddf2eb0",
+            "isDeleted": false,
+            "createdAt": "2026-11-22T22:17:24.322Z",
+            "updatedAt": "2026-11-22T22:17:24.322Z",
+            "customer": {
+                "id": "6b0369e4e0b8722fcddf2eb0",
+                "fullName": "Ayşe Demir",
+                "...": "Customer alanları"
+            }
+        }
+    ],
+    "total": 74,
+    "page": 1,
+    "pageCount": 2
+}
+```
+
+---
+
+### `GET /notes/{noteId}`
+
+Tek bir not.
+
+**Yetki:** admin, moderator
+
+**Yol parametreleri:** `noteId`
+
+**İstek:**
+
+```bash
+curl -H "Authorization: Bearer $TOKEN" "$API/notes/6b0369f4e0b8722fcddf2eb3"
+```
+
+**Yanıt `200`:**
+
+```json
+{
+    "status": true,
+    "note": {
+        "id": "6b0369f4e0b8722fcddf2eb3",
+        "content": "Müşteri geri arama istedi",
+        "rawContent": "<div>Müşteri geri arama istedi</div>",
+        "customerId": "6b0369e4e0b8722fcddf2eb0",
+        "isDeleted": false,
+        "createdAt": "2026-11-22T22:17:24.322Z",
+        "updatedAt": "2026-11-22T22:17:24.322Z"
+    }
+}
+```
+
+**Hatalar:** `400` `Geçersiz not`, `404` `Not bulunamadı`.
+
+---
+
+### `PATCH /notes/{noteId}`
+
+Notu günceller.
+
+**Yetki:** admin, moderator
+
+**Yol parametreleri:** `noteId`
+
+**Gövde:** [`POST /customers/{customerId}/notes`](#post-customerscustomeridnotes) ile aynı alanlar.
+
+**İstek:**
+
+```bash
+curl -X PATCH "$API/notes/6b0369f4e0b8722fcddf2eb3" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"content":"Müşteri yarın 14:00 için arandı"}'
+```
+
+**Yanıt `200`:**
+
+```json
+{
+    "status": true,
+    "message": "Not güncellendi",
+    "note": {
+        "id": "6b0369f4e0b8722fcddf2eb3",
+        "content": "Müşteri yarın 14:00 için arandı",
+        "rawContent": "<div>Müşteri yarın 14:00 için arandı</div>",
+        "customerId": "6b0369e4e0b8722fcddf2eb0",
+        "isDeleted": false,
+        "createdAt": "2026-11-22T22:17:24.322Z",
+        "updatedAt": "2026-11-22T22:17:27.762Z"
+    }
+}
+```
+
+**Hatalar:** `400`, `404` `Not bulunamadı`.
+
+---
+
+### `DELETE /notes/{noteId}`
+
+Notu siler.
+
+**Yetki:** admin
+
+**Yol parametreleri:** `noteId`
+
+**İstek:**
+
+```bash
+curl -X DELETE -H "Authorization: Bearer $TOKEN" "$API/notes/6b0369f4e0b8722fcddf2eb3"
+```
+
+**Yanıt `200`:**
+
+```json
+{ "status": true, "message": "Not silindi" }
+```
+
+**Yanıt `403` (moderatör token'ıyla):**
+
+```json
+{ "status": false, "message": "Bu işlem için yetkiniz yok" }
+```
+
+---
+
+## Kullanıcılar (sadece admin)
+
+Panele giriş yapan sistem kullanıcıları. Bu bölümdeki bütün istekler moderatör token'ıyla `403` döner. Kullanıcı nesnesinin alanları için bkz. [User](#user).
+
+### `GET /users`
+
+Kullanıcı listesi.
+
+**Yetki:** admin
+
+**Query parametreleri:**
+
+| Parametre | Zorunlu | Değerler | Açıklama |
+|---|---|---|---|
+| `q` | hayır | metin | Ad soyad ya da email'de arar |
+| `role` | hayır | `admin`, `moderator` | Role göre filtre |
+| `period` | hayır | `today`, `week`, `month` | Oluşturulma tarihi |
+| `sort` | hayır | `updated` (varsayılan), `created`, `name` | Sıralama |
+| `page` | hayır | `1`, `2`, ... | Sayfa |
+
+**İstek:**
+
+```bash
+curl -H "Authorization: Bearer $TOKEN" "$API/users?role=admin"
+```
+
+**Yanıt `200`:**
+
+```json
+{
+    "status": true,
+    "users": [
+        {
+            "id": "6b0065ebbfa5807b0f9326d1",
+            "name": "Test",
+            "surname": "Kullanıcı",
+            "fullName": "Test Kullanıcı",
+            "email": "admin@testmail.com",
+            "role": "admin",
+            "createdAt": "2026-11-20T15:23:19.637Z",
+            "updatedAt": "2026-11-22T15:00:08.219Z"
+        }
+    ],
+    "total": 1,
+    "page": 1,
+    "pageCount": 1
+}
+```
+
+---
+
+### `POST /users`
+
+Yeni kullanıcı ekler ve ona bir API token'ı üretir.
+
+**Yetki:** admin
+
+**Gövde:**
+
+| Alan | Tip | Zorunlu | Kural |
+|---|---|---|---|
+| `name` | string | evet | 1–50 karakter |
+| `surname` | string | evet | 1–50 karakter |
+| `email` | string | evet | Geçerli email; başka bir kullanıcıda varsa `409` |
+| `role` | string | evet | `admin`, `moderator` |
+| `password` | string | evet | 8–50 karakter |
+
+**İstek:**
+
+```bash
+curl -X POST "$API/users" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Mehmet","surname":"Kaya","email":"mehmet@example.com","role":"moderator","password":"guclu-sifre-123"}'
+```
+
+**Yanıt `201`:**
+
+```json
+{
+    "status": true,
+    "message": "Kullanıcı oluşturuldu",
+    "user": {
+        "id": "6b036a2fe0b8722fcddf2eb5",
+        "name": "Mehmet",
+        "surname": "Kaya",
+        "fullName": "Mehmet Kaya",
+        "email": "mehmet@example.com",
+        "role": "moderator",
+        "createdAt": "2026-11-22T22:18:23.000Z",
+        "updatedAt": "2026-11-22T22:18:23.000Z"
+    },
+    "apiToken": "crm_Xk2...128 karakter"
+}
+```
+
+`apiToken` yeni kullanıcının API token'ıdır ve **sadece bu yanıtta** döner. Kaybolursa [`POST /users/{userId}/api-token`](#post-usersuseridapi-token) ile yenisi üretilir.
+
+**Hatalar:** `400`, `409` `Bu email ile kayıtlı bir kullanıcı zaten var`.
+
+---
+
+### `GET /users/{userId}`
+
+Tek bir kullanıcı. Şifre hiçbir zaman dönmez.
+
+**Yetki:** admin
+
+**Yol parametreleri:** `userId`
+
+**İstek:**
+
+```bash
+curl -H "Authorization: Bearer $TOKEN" "$API/users/6b0065ebbfa5807b0f9326d1"
+```
+
+**Yanıt `200`:**
+
+```json
+{
+    "status": true,
+    "user": {
+        "id": "6b0065ebbfa5807b0f9326d1",
+        "name": "Test",
+        "surname": "Kullanıcı",
+        "fullName": "Test Kullanıcı",
+        "email": "admin@testmail.com",
+        "role": "admin",
+        "createdAt": "2026-11-20T15:23:19.637Z",
+        "updatedAt": "2026-11-22T15:00:08.219Z"
+    }
+}
+```
+
+**Hatalar:** `400` `Geçersiz kullanıcı`, `404` `Kullanıcı bulunamadı`.
+
+---
+
+### `PATCH /users/{userId}`
+
+Kullanıcıyı günceller.
+
+**Yetki:** admin
+
+**Yol parametreleri:** `userId`
+
+**Gövde:** [`POST /users`](#post-users) ile aynı alanlar, hepsi opsiyonel. `password` gönderilmezse şifre değişmez; gönderilirse kullanıcının açık oturumları kapanır.
+
+**İstek:**
+
+```bash
+curl -X PATCH "$API/users/6b036a2fe0b8722fcddf2eb5" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"role":"admin"}'
+```
+
+**Yanıt `200`:**
+
+```json
+{
+    "status": true,
+    "message": "Kullanıcı güncellendi",
+    "user": { "id": "6b036a2fe0b8722fcddf2eb5", "role": "admin", "...": "User alanları" }
+}
+```
+
+**Hatalar:**
+
+| Kod | Mesaj |
+|---|---|
+| `400` | `Kendi admin rolünüzü kaldıramazsınız`, doğrulama hataları |
+| `404` | `Kullanıcı bulunamadı` |
+| `409` | `Bu email ile kayıtlı başka bir kullanıcı var` |
+
+---
+
+### `DELETE /users/{userId}`
+
+Kullanıcıyı siler. Kullanıcının oturumları ve API token'ı anında geçersiz olur.
+
+**Yetki:** admin
+
+**Yol parametreleri:** `userId`
+
+**İstek:**
+
+```bash
+curl -X DELETE -H "Authorization: Bearer $TOKEN" "$API/users/6b036a2fe0b8722fcddf2eb5"
+```
+
+**Yanıt `200`:**
+
+```json
+{ "status": true, "message": "Kullanıcı silindi" }
+```
+
+**Hatalar:** `400` `Kendi hesabınızı silemezsiniz`, `404` `Kullanıcı bulunamadı`.
+
+---
+
+### `GET /users/{userId}/api-token`
+
+Kullanıcının API token'ının ne zaman oluşturulduğu ve en son ne zaman kullanıldığı. Token'ın kendisi dönmez.
+
+**Yetki:** admin
+
+**Yol parametreleri:** `userId`
+
+**İstek:**
+
+```bash
+curl -H "Authorization: Bearer $TOKEN" "$API/users/6b0065ebbfa5807b0f9326d1/api-token"
+```
+
+**Yanıt `200`:**
+
+```json
+{
+    "status": true,
+    "apiToken": {
+        "createdAt": "2026-11-22T18:12:49.856Z",
+        "lastUsedAt": "2026-11-22T22:17:37.747Z"
+    }
+}
+```
+
+Kullanıcının token'ı yoksa `apiToken` `null` döner. Hiç kullanılmamış bir token'da `lastUsedAt` `null`'dır.
+
+---
+
+### `POST /users/{userId}/api-token`
+
+Kullanıcıya yeni bir API token'ı üretir. **Eski token anında çalışmaz hale gelir.** Gövde gerekmez.
+
+**Yetki:** admin
+
+**Yol parametreleri:** `userId`
+
+**İstek:**
+
+```bash
+curl -X POST -H "Authorization: Bearer $TOKEN" "$API/users/6b036a2fe0b8722fcddf2eb5/api-token"
+```
+
+**Yanıt `200`:**
+
+```json
+{
+    "status": true,
+    "message": "Yeni API token oluşturuldu, eskisi artık çalışmaz",
+    "token": "crm_Q9v...128 karakter",
+    "apiToken": { "createdAt": "2026-11-22T22:20:00.000Z", "lastUsedAt": null }
+}
+```
+
+`token` yeni token'dır ve **sadece bu yanıtta** döner.
+
+> Demo hesapların token'ını yenilemeyin; diğer ziyaretçiler giriş sayfasındaki token'ı kullanamaz hale gelir.
+
+**Hatalar:** `404` `Kullanıcı bulunamadı`.
+
+---
+
+## Veri modelleri
+
+Tarihler ISO 8601 biçiminde, UTC olarak döner (`2026-11-22T22:17:08.874Z`).
+
+### Customer
+
+| Alan | Tip | Açıklama |
+|---|---|---|
+| `id` | string | Kimlik |
+| `name` | string | Ad |
+| `surname` | string | Soyad |
+| `fullName` | string | Ad soyad (sunucu üretir) |
+| `email` | string | Email (müşteriler arasında benzersiz) |
+| `phone` | string \| null | Telefon |
+| `company` | string \| null | Firma |
+| `isDeleted` | boolean | API'de her zaman `false` (silinenler dönmez) |
+| `createdAt` | string | Oluşturulma zamanı |
+| `updatedAt` | string | Son güncelleme zamanı |
+| `_count` | `{ notes, posts }` | Sadece listede ve tek müşteri isteğinde |
+
+### Post
+
+| Alan | Tip | Açıklama |
+|---|---|---|
+| `id` | string | Kimlik |
+| `title` | string | Başlık |
+| `content` | string | Düz metin içerik |
+| `rawContent` | string | HTML içerik (temizlenmiş) |
+| `status` | `draft` \| `inReview` \| `published` | Durum |
+| `customerId` | string | Sahibi olan müşteri |
+| `isDeleted` | boolean | Her zaman `false` |
+| `createdAt` | string | Oluşturulma zamanı |
+| `updatedAt` | string | Son güncelleme zamanı |
+| `customer` | Customer | Sadece `GET /posts` ve dashboard'da |
+
+### Note
+
+| Alan | Tip | Açıklama |
+|---|---|---|
+| `id` | string | Kimlik |
+| `content` | string | Düz metin içerik |
+| `rawContent` | string | HTML içerik (temizlenmiş) |
+| `customerId` | string | Sahibi olan müşteri |
+| `isDeleted` | boolean | Her zaman `false` |
+| `createdAt` | string | Oluşturulma zamanı |
+| `updatedAt` | string | Son güncelleme zamanı |
+| `customer` | Customer | Sadece `GET /notes` ve dashboard'da |
+
+### User
+
+| Alan | Tip | Açıklama |
+|---|---|---|
+| `id` | string | Kimlik |
+| `name` | string | Ad |
+| `surname` | string | Soyad |
+| `fullName` | string | Ad soyad |
+| `email` | string | Email (`/me`'de maskeli: `a***@testmail.com`) |
+| `role` | `admin` \| `moderator` | Rol |
+| `createdAt` | string | Oluşturulma zamanı |
+| `updatedAt` | string | Son güncelleme zamanı |
+
+Şifre hiçbir yanıtta dönmez (`/me`'de sadece `***`).

@@ -14,7 +14,7 @@ Müşterileri ve müşterilere bağlı içerikleri (blog yazıları ve notlar) y
 
 ## Demo hesapları
 
-Giriş sayfasında da yazıyor; **Bilgileri doldur** butonu formu otomatik doldurur. API token'ı [REST API](#rest-api) istekleri içindir.
+Giriş sayfasında da yazıyor; **Bilgileri doldur** butonu formu otomatik doldurur. API token'ı [REST API](api.md) istekleri içindir.
 
 | Rol | Email | Şifre | API token | Yapabildikleri |
 |---|---|---|---|---|
@@ -36,11 +36,7 @@ Giriş sayfasında da yazıyor; **Bilgileri doldur** butonu formu otomatik doldu
   - [Zengin metin (blog ve notlar)](#zengin-metin-blog-ve-notlar)
   - [Arama, filtre ve sayfalama](#arama-filtre-ve-sayfalama)
   - [Arayüz](#arayüz)
-- [REST API](#rest-api)
-  - [API token'ları](#api-tokenları)
-  - [Yanıt formatı ve durum kodları](#yanıt-formatı-ve-durum-kodları)
-  - [Uç noktalar](#uç-noktalar)
-  - [Örnekler](#örnekler)
+- [REST API](#rest-api) ([api.md](api.md))
 - [Kurulum](#kurulum)
 - [Komutlar](#komutlar)
 - [Güvenlik notları](#güvenlik-notları)
@@ -333,149 +329,14 @@ flowchart LR
 
 ## REST API
 
-Panelin dışındaki sistemler (entegrasyonlar, script'ler, mobil uygulama vb.) için `/api/v1` altında RESTful bir API var. Route'lar (`app/api/v1/**/route.ts`) iş mantığını kendileri yazmaz; panelin kullandığı **aynı Server Action'ları** çağırır. Bu yüzden zod doğrulaması, rol yetkileri, soft delete, `pageLimit` ve HTML temizleme API'de de birebir aynıdır. Route'lar sadece HTTP ile action'lar arasında çeviri yapar (`lib/api.ts`).
+Panelin dışındaki sistemler (entegrasyonlar, script'ler, mobil uygulama vb.) için `/api/v1` altında RESTful bir API var. **Bütün uç noktalar, parametreler, istek gövdeleri ve örnekler [api.md](api.md) dosyasında.**
 
-### API token'ları
+Mimari açıdan:
 
-Her istek, kullanıcının API token'ıyla gönderilir:
-
-```http
-Authorization: Bearer <token>
-```
-
-- **Kullanıcı başına bir token.** İstek o kullanıcının rolüyle çalışır; admin token'ı her şeyi yapabilir, moderatör token'ı silme ve kullanıcı yönetimi yapamaz.
-- **Format:** `crm_` + 128 karakterlik opak rastgele değer. JWT değildir, içinde bilgi taşımaz.
-- **Saklama:** Veritabanında sadece token'ın **SHA-256 hash'i** tutulur (`ApiToken` modeli). Token bu yüzden sadece oluşturulduğu anda bir kez gösterilir.
-- **Oluşturma:**
-  - Admin Paneli'nden kullanıcı eklenince token otomatik oluşturulur ve bir pencerede gösterilir.
-  - `npm run user:create` token'ı terminale yazar.
-  - `npm run api:tokens` token'ı olmayan bütün kullanıcılara token verir, demo hesaplara sabit token'larını yazar.
-- **Yenileme:** Kullanıcı kendi token'ını **Profilim** sayfasından, admin herhangi bir kullanıcınınkini Admin Paneli → kullanıcıyı düzenle → **API Token** kartından yeniler (*Yeni Token Oluştur*). Eski token anında geçersiz olur. Kart, token'ın ne zaman oluşturulduğunu ve en son ne zaman kullanıldığını da gösterir.
-- **Çerez kabul edilmez.** API sadece `Authorization` başlığıyla çalışır; panelin oturum çerezi API'de geçmez. Bu sayede başka bir siteden tarayıcı üzerinden istek atılamaz (CSRF).
-- **Silinen kullanıcı:** Kullanıcı silinince token'ı da soft delete edilir.
-
-**Demo token'ları** (giriş sayfasında da yazıyor):
-
-| Hesap | Token |
-|---|---|
-| Admin | `crm_demo_admin_api_token` |
-| Moderatör | `crm_demo_moderator_api_token` |
-
-Demo token'ları herkese açık olsun diye sabittir (`lib/src/constants.ts` → `demoAccounts`). Panelden yenilenirlerse `npm run api:tokens` onları geri yükler.
-
-### Yanıt formatı ve durum kodları
-
-Yanıtlar, Server Action'ların döndüğü `Response` yapısıyla aynıdır: `{ status: boolean, message?: string, ...veri }`.
-
-```json
-{ "status": true, "customers": [ ... ], "total": 52, "page": 1, "pageCount": 2 }
-{ "status": false, "message": "Müşteri bulunamadı" }
-```
-
-| Kod | Ne zaman |
-|---|---|
-| `200` | Başarılı okuma, güncelleme ya da silme |
-| `201` | Kayıt oluşturuldu |
-| `400` | Geçersiz girdi (zod mesajı döner), geçersiz JSON, geçersiz id |
-| `401` | Token yok, hatalı ya da geçersiz |
-| `403` | Token geçerli ama rolün bu işleme yetkisi yok |
-| `404` | Kayıt bulunamadı (silinmiş kayıtlar da bulunamaz) |
-| `409` | Aynı email ile kayıt zaten var |
-
-Hata mesajları Türkçedir, panelde gösterilen mesajlarla aynıdır.
-
-### Uç noktalar
-
-Bütün yollar `/api/v1` ile başlar.
-
-| Metot | Yol | Yetki | Açıklama |
-|---|---|---|---|
-| `GET` | `/me` | – | Token'ın sahibi (email maskeli) |
-| `GET` | `/dashboard` | `dashboard:read` | Dashboard istatistikleri (`?date=YYYY-MM-DD&period=`) |
-| `GET` | `/customers` | `customer:read` | Müşteri listesi |
-| `POST` | `/customers` | `customer:create` | Müşteri ekle |
-| `GET` | `/customers/{customerId}` | `customer:read` | Müşteri, not / blog sayıları ve blog durum dağılımı |
-| `PATCH` | `/customers/{customerId}` | `customer:update` | Müşteriyi güncelle |
-| `DELETE` | `/customers/{customerId}` | `customer:delete` | Müşteriyi bloglarıyla ve notlarıyla birlikte soft delete et |
-| `GET` | `/customers/{customerId}/posts` | `post:read` | Müşterinin blogları |
-| `POST` | `/customers/{customerId}/posts` | `post:create` | Müşteriye blog ekle |
-| `GET` | `/customers/{customerId}/notes` | `note:read` | Müşterinin notları |
-| `POST` | `/customers/{customerId}/notes` | `note:create` | Müşteriye not ekle |
-| `GET` | `/posts` | `post:read` | Tüm müşterilerin blogları |
-| `GET` | `/posts/{postId}` | `post:read` | Blog |
-| `PATCH` | `/posts/{postId}` | `post:update` | Blogu güncelle; sadece `{ "status" }` gönderilirse sadece durum değişir |
-| `DELETE` | `/posts/{postId}` | `post:delete` | Blogu soft delete et |
-| `GET` | `/notes` | `note:read` | Tüm müşterilerin notları |
-| `GET` | `/notes/{noteId}` | `note:read` | Not |
-| `PATCH` | `/notes/{noteId}` | `note:update` | Notu güncelle |
-| `DELETE` | `/notes/{noteId}` | `note:delete` | Notu soft delete et |
-| `GET` | `/users` | `user:read` | Sistem kullanıcıları |
-| `POST` | `/users` | `user:create` | Kullanıcı ekle; yanıtta yeni kullanıcının `apiToken`'ı bir kez döner |
-| `GET` | `/users/{userId}` | `user:read` | Kullanıcı (şifre hiçbir zaman dönmez) |
-| `PATCH` | `/users/{userId}` | `user:update` | Kullanıcıyı güncelle (`password` opsiyonel) |
-| `DELETE` | `/users/{userId}` | `user:delete` | Kullanıcıyı soft delete et; oturumları ve API token'ı kapanır |
-| `GET` | `/users/{userId}/api-token` | `apiToken:read` | Token'ın oluşturulma ve son kullanım zamanı (token'ın kendisi değil) |
-| `POST` | `/users/{userId}/api-token` | `apiToken:create` | Yeni token üret, eskisini geçersiz kıl; yeni token yanıtta bir kez döner |
-
-**Liste parametreleri**
-
-Listeler panel listeleriyle aynı filtreleri query string ile alır ve en fazla `pageLimit` (50) kayıt döner:
-
-| Parametre | Değerler | Geçerli olduğu yer |
-|---|---|---|
-| `q` | Arama metni | hepsi |
-| `page` | `1`, `2`, ... (son sayfadan büyükse son sayfa döner) | hepsi |
-| `sort` | `updated` (varsayılan), `created`; müşteri ve kullanıcıda `name`, blogda `title` | hepsi |
-| `period` | `today`, `week`, `month` | müşteri, blog, not, kullanıcı |
-| `status` | `draft`, `inReview`, `published` | bloglar |
-| `postStatus` | `draft`, `inReview`, `published` (o durumda blogu olan müşteriler) | müşteriler |
-| `role` | `admin`, `moderator` | kullanıcılar |
-
-Panelin aksine API geçersiz bir değeri sessizce yok saymaz; `400` ile hata mesajı döner.
-
-**Gövde (JSON) kuralları**
-
-- **`PATCH` kısmi günceller:** Sadece gönderilen alanlar değişir, diğerleri olduğu gibi kalır. Opsiyonel bir alanı (`phone`, `company`) boşaltmak için `null` gönderin.
-- **Kimlikler URL'den gelir:** Gövdede gönderilen `customerId`, `postId` gibi alanlar yok sayılır.
-- **Zengin metin:** Blog ve notlar için `rawContent` (HTML) ve / veya `content` (düz metin) gönderilebilir.
-  - Sadece `rawContent` gönderilirse düz metin ondan çıkarılır.
-  - Sadece `content` gönderilirse her satır bir `<div>` olacak şekilde HTML üretilir.
-  - HTML her durumda panelde olduğu gibi sunucuda temizlenir; `<script>` gibi etiketler kaydedilmez.
-- **Blog durumu:** Yeni blogda `status` gönderilmezse `draft` olur.
-
-### Örnekler
-
-```bash
-TOKEN=crm_demo_admin_api_token
-API=http://localhost:3000/api/v1
-
-# Token kimin?
-curl -H "Authorization: Bearer $TOKEN" $API/me
-
-# Adında "ahmet" geçen müşteriler, ada göre sıralı
-curl -H "Authorization: Bearer $TOKEN" "$API/customers?q=ahmet&sort=name"
-
-# Müşteri ekle
-curl -X POST $API/customers \
-  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
-  -d '{"name":"Ayşe","surname":"Demir","email":"ayse@example.com","company":"Demir Ltd."}'
-
-# Müşteriye blog ekle (sadece düz metin; HTML otomatik üretilir)
-curl -X POST $API/customers/<customerId>/posts \
-  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
-  -d '{"title":"Yeni ürünümüz","content":"Birinci satır\nİkinci satır"}'
-
-# Blogu yayına al
-curl -X PATCH $API/posts/<postId> \
-  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
-  -d '{"status":"published"}'
-
-# Yayındaki bloglar
-curl -H "Authorization: Bearer $TOKEN" "$API/posts?status=published"
-
-# Notu sil (moderatör token'ıyla 403 döner)
-curl -X DELETE -H "Authorization: Bearer $TOKEN" $API/notes/<noteId>
-```
+- Route'lar (`app/api/v1/**/route.ts`) iş mantığını kendileri yazmaz; panelin kullandığı **aynı Server Action'ları** çağırır. Bu yüzden zod doğrulaması, rol yetkileri, soft delete, `pageLimit` ve HTML temizleme API'de de birebir aynıdır. HTTP ile action'lar arasındaki çeviri `lib/api.ts` içindedir.
+- İstekler `Authorization: Bearer <token>` ile gelir. Her kullanıcının bir API token'ı vardır; veritabanında sadece SHA-256 hash'i tutulur (`ApiToken` modeli). API oturum çerezini kabul etmez.
+- **CORS** her origin'e açıktır (`next.config.ts` → `headers()`). API çerez kullanmadığı için bu güvenlidir: başka bir site ziyaretçinin oturumuyla istek atamaz, sadece kendi token'ıyla atabilir.
+- Token'lar `npm run user:create` ve Admin Paneli'nde kullanıcı eklenirken oluşturulur; `npm run api:tokens` token'ı olmayan kullanıcılara token verir ve demo hesapların sabit token'larını (`demoAccounts`) geri yazar.
 
 ---
 

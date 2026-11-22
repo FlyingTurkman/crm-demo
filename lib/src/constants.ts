@@ -118,3 +118,4 @@ export const apiBasePath = '/api/v1'
 // Project links shown on the login page (blob/HEAD always points to the default branch)
 export const githubRepoUrl = 'https://github.com/FlyingTurkman/crm-demo'
 export const githubReadmeUrl = 'https://github.com/FlyingTurkman/crm-demo/blob/HEAD/README.md'
+export const githubApiDocsUrl = 'https://github.com/FlyingTurkman/crm-demo/blob/HEAD/api.md'
