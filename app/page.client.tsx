@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
-import { IoDocumentText, IoKey, IoLogoGithub, IoMail, IoShieldCheckmark } from 'react-icons/io5'
+import { IoCode, IoDocumentText, IoKey, IoLogoGithub, IoMail, IoShieldCheckmark } from 'react-icons/io5'
 import { toast } from 'sonner'
 import { login } from '@/actions/auth'
 import { useSiteContext } from '@/components/app/context/SiteContext'
@@ -13,6 +13,7 @@ import { Field, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field
 import { Input } from '@/components/ui/input'
 import { Spinner } from '@/components/ui/spinner'
 import {
+    apiBasePath,
     demoAccounts,
     emailPattern,
     githubReadmeUrl,
@@ -55,6 +56,9 @@ export default function LoginPageClient() {
                     </div>
                     <p className='text-primary-foreground/80'>
                         Uygulamayı denemek için aşağıdaki hesaplardan biriyle giriş yapabilirsiniz.
+                        REST API&apos;yi ({apiBasePath}) denemek için hesabın API token&apos;ını
+                        <code className='mx-1 font-mono'>Authorization: Bearer &lt;token&gt;</code>
+                        başlığıyla gönderin.
                     </p>
                 </div>
 
@@ -81,6 +85,11 @@ export default function LoginPageClient() {
                                         <IoKey className='text-muted-foreground' aria-hidden />
                                         <dt className='sr-only'>Şifre</dt>
                                         <dd className='font-mono'>{account.password}</dd>
+                                    </div>
+                                    <div className='flex items-center gap-2' title={`REST API (${apiBasePath}) için Bearer token`}>
+                                        <IoCode className='shrink-0 text-muted-foreground' aria-hidden />
+                                        <dt className='sr-only'>API token</dt>
+                                        <dd className='font-mono break-all'>{account.apiToken}</dd>
                                     </div>
                                 </dl>
                                 <Button

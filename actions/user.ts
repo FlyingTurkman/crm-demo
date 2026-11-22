@@ -5,6 +5,7 @@ import { Prisma, UserRole } from '@prisma/client'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { authorize } from '@/lib/auth/authorize'
+import { issueApiToken } from '@/lib/auth/apiToken'
 import { hashPassword } from '@/lib/auth/password'
 import { getPeriodWhere } from '@/lib/period'
 import { escapeRegex } from '@/lib/search'
@@ -108,6 +109,8 @@ type GetUserResponse = Response & {
 
 type CreateUserResponse = Response & {
     user?: ManagedUserDto
+    // Raw REST API token of the new user, shown to the admin once
+    apiToken?: string
     href?: string
 }
 
@@ -263,8 +266,10 @@ export async function createUser(input: z.input<typeof createUserSchema>): Promi
             },
             omit: { password: true },
         })
+        // Every user gets an API token right away
+        const apiToken = await issueApiToken(user.id)
         revalidateAdmin()
-        return { status: true, message: 'Kullanıcı oluşturuldu', user: toManagedUser(user), href: '/app/admin' }
+        return { status: true, message: 'Kullanıcı oluşturuldu', user: toManagedUser(user), apiToken, href: '/app/admin' }
     } catch (error) {
         if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
             return { status: false, message: 'Bu email ile kayıtlı bir kullanıcı zaten var' }
@@ -356,9 +361,10 @@ export async function deleteUser(input: z.input<typeof getUserSchema>): Promise<
         return { status: false, message: 'Kullanıcı bulunamadı' }
     }
 
-    // Soft delete the user together with its sessions, so it is logged out immediately
+    // Soft delete the user together with its sessions and API tokens, so it is locked out immediately
     await prisma.$transaction([
         prisma.session.updateMany({ where: { userId, isDeleted: false }, data: { isDeleted: true } }),
+        prisma.apiToken.updateMany({ where: { userId, isDeleted: false }, data: { isDeleted: true } }),
         prisma.user.update({ where: { id: userId }, data: { isDeleted: true } }),
     ])
 

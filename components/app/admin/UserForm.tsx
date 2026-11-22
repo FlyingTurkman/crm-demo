@@ -1,11 +1,13 @@
 'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import type { UserRole } from '@prisma/client'
 import { Controller, useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 import { createUser, updateUser } from '@/actions/user'
+import ApiTokenDialog from '@/components/app/apiToken/ApiTokenDialog'
 import { useSiteContext } from '@/components/app/context/SiteContext'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
@@ -40,6 +42,8 @@ export default function UserForm({ user }: { user?: ManagedUserDto }) {
     const { user: currentUser } = useSiteContext()
     // An admin can't take away their own admin role (the action checks it too)
     const isSelf = Boolean(user && currentUser && user.id === currentUser.id)
+    // API token of a just created user, shown once before going back to the list
+    const [createdToken, setCreatedToken] = useState<{ token: string, href: string } | null>(null)
     const {
         register,
         control,
@@ -197,6 +201,7 @@ export default function UserForm({ user }: { user?: ManagedUserDto }) {
                     </Button>
                 </CardFooter>
             </form>
+            <ApiTokenDialog token={createdToken?.token ?? null} onClose={handleCloseToken} />
         </Card>
     )
 
@@ -231,6 +236,17 @@ export default function UserForm({ user }: { user?: ManagedUserDto }) {
         }
 
         toast.success(result.message ?? 'Kullanıcı kaydedildi')
+        const apiToken = 'apiToken' in result ? result.apiToken : undefined
+        if (typeof apiToken === 'string') {
+            setCreatedToken({ token: apiToken, href: result.href ?? '/app/admin' })
+            return
+        }
         router.push(result.href ?? '/app/admin')
+    }
+
+    function handleCloseToken() {
+        const href = createdToken?.href ?? '/app/admin'
+        setCreatedToken(null)
+        router.push(href)
     }
 }

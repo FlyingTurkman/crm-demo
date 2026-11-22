@@ -105,10 +105,15 @@ export const userSortLabels = {
 export const sidebarUserLimit = 20
 
 // Demo accounts shown on the login page (this is a demo app, change them for real use)
+// Their API tokens are fixed so they can be published too: `npm run api:tokens` writes them to the database
 export const demoAccounts = [
-    { role: 'admin', email: 'admin@testmail.com', password: '12345678' },
-    { role: 'moderator', email: 'moderator@testmail.com', password: '12345678' },
+    { role: 'admin', email: 'admin@testmail.com', password: '12345678', apiToken: 'crm_demo_admin_api_token' },
+    { role: 'moderator', email: 'moderator@testmail.com', password: '12345678', apiToken: 'crm_demo_moderator_api_token' },
 ] as const
+
+// REST API (/api/v1): tokens start with this prefix so they are easy to recognise
+export const apiTokenPrefix = 'crm_'
+export const apiBasePath = '/api/v1'
 
 // Project links shown on the login page (blob/HEAD always points to the default branch)
 export const githubRepoUrl = 'https://github.com/FlyingTurkman/crm-demo'

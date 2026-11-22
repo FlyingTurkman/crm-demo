@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
+import { getApiTokenInfo } from '@/actions/apiToken'
 import { getUserCached, getUserPageTitle } from '@/lib/data'
 import EditUserPageClient from './page.client'
 
@@ -22,7 +23,9 @@ export default async function Page({
         notFound()
     }
 
+    const tokenResult = await getApiTokenInfo({ userId })
+
     return (
-        <EditUserPageClient user={result.user} />
+        <EditUserPageClient user={result.user} apiToken={tokenResult.apiToken ?? null} />
     )
 }

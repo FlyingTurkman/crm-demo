@@ -20,6 +20,10 @@ export type Permission =
     | 'user:create'
     | 'user:update'
     | 'user:delete'
+    | 'apiToken:read'
+    | 'apiToken:create'
+    | 'profile:read'
+    | 'profile:update'
 
 const allPermissions: Permission[] = [
     'customer:read',
@@ -39,14 +43,18 @@ const allPermissions: Permission[] = [
     'user:create',
     'user:update',
     'user:delete',
+    'apiToken:read',
+    'apiToken:create',
+    'profile:read',
+    'profile:update',
 ]
 
 // Single source of truth for roles.
-// Moderators can do everything except deleting and managing system users (admin panel).
+// Moderators can do everything except deleting and managing system users and their API tokens (admin panel).
 export const rolePermissions: Record<UserRole, Permission[]> = {
     admin: allPermissions,
     moderator: allPermissions.filter(function (permission) {
-        return !permission.endsWith(':delete') && !permission.startsWith('user:')
+        return !permission.endsWith(':delete') && !permission.startsWith('user:') && !permission.startsWith('apiToken:')
     }),
 }
 

@@ -95,6 +95,23 @@ export async function rotateSession(refreshToken: string) {
     return { accessToken: newAccessToken, refreshToken: newRefreshToken }
 }
 
+// Id of the session in the cookies (null for API token requests or guests)
+export async function getCurrentSessionId() {
+    const cookieStore = await cookies()
+    const accessToken = cookieStore.get(ACCESS_TOKEN_COOKIE)?.value
+    if (!accessToken) return null
+
+    const session = await prisma.session.findFirst({
+        where: {
+            accessTokenHash: hashToken(accessToken),
+            accessTokenExpiresAt: { gt: new Date() },
+            isDeleted: false,
+        },
+        select: { id: true },
+    })
+    return session ? session.id : null
+}
+
 // Soft-deletes the current session and clears the cookies.
 export async function deleteSession() {
     const cookieStore = await cookies()

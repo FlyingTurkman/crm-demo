@@ -20,6 +20,10 @@
 - **No JWT.** Access and refresh tokens are opaque random tokens from our own generator in `lib/auth/token.ts` (`generateToken`: 96 random bytes → 128-char base64url).
 - **Only the SHA-256 hash of a token is stored** in the `Session` model (`hashToken`); the raw token lives only in the cookie.
 - Tokens are stored in **httpOnly cookies** (`access_token`: 15 min, `refresh_token`: 30 days), `secure` in production, `sameSite: lax`. Never expose tokens to client JS or return them from actions.
+- **API tokens (REST API):** every user has one active `ApiToken` (`lib/auth/apiToken.ts`: `generateApiToken` → `crm_` + `generateToken()`, `validateApiToken`, `issueApiToken`). Only the SHA-256 hash is stored; issuing a new one soft-deletes the old one. Sent as `Authorization: Bearer <token>`; the API never accepts the session cookie.
+  - `authorize()` uses the Bearer token when the header is present (never falling back to the cookie), otherwise the session cookie — so every action works for both the panel and the API.
+  - The raw API token is the **only** token an action may return, and only right after it is generated (`createUser`, `regenerateApiToken`), to be shown once in `ApiTokenDialog`.
+  - New users always get a token (`createUser`, `npm run user:create`). Deleting a user soft-deletes its API tokens too. Demo accounts have fixed tokens in `demoAccounts` (shown on the login page), written by `npm run api:tokens`.
 - **Routes:** `/` is the login page, `/app/**` is the protected panel where the whole application lives. Every new panel page goes under `app/app/`.
 - `proxy.ts` runs on every request and validates the access token against the database:
   - guest on `/app/**` → redirect to `/`; logged-in user on `/` → redirect to `/app`
@@ -36,9 +40,11 @@
       return { status: false, message: auth.message }
   }
   ```
-- **Role permissions live only in `lib/auth/permissions.ts`** (`Permission` type, `rolePermissions`, `hasPermission`). Admin can do everything; moderator can do everything except `*:delete` and `user:*` (the admin panel). A new action needs a matching `Permission` (`<model>:read|create|update|delete`); change role rights there, never with `role === '...'` checks in actions.
+- **Role permissions live only in `lib/auth/permissions.ts`** (`Permission` type, `rolePermissions`, `hasPermission`). Admin can do everything; moderator can do everything except `*:delete`, `user:*` and `apiToken:*` (the admin panel). `profile:*` (own account, `actions/profile.ts`) is for both roles; profile actions only ever touch `auth.user.id`. A new action needs a matching `Permission` (`<model>:read|create|update|delete`); change role rights there, never with `role === '...'` checks in actions.
 - Client components may call `hasPermission(user?.role, ...)` only to hide UI (e.g. `EditDeleteMenu`'s `deletePermission` hides "Sil"); the real check is always `authorize()` in the action.
 - Create users from the terminal with `npm run user:create`.
+- **Demo accounts are shared:** `isDemoAccountEmail` (`lib/auth/demo.ts`) blocks changing their password, API token and other sessions from the profile page, so one visitor can't lock the others out.
+- Changing your own password (`changePassword`) requires the current password and soft-deletes your other sessions (`getCurrentSessionId` keeps the current one).
 
 ## DTO rules
 - **Data is censored with a DTO before it is sent to the client.** Never send a raw Prisma record of a sensitive model (e.g. `User`) to a client component or return it from a Server Action.
@@ -75,7 +81,12 @@
 - When adding a new model to the schema, add its type to `types.d.ts` the same way.
 
 ## Data access rules
-- **Use Server Actions, never API routes.** Do not create `app/api/**/route.ts` files.
+- **The panel uses Server Actions, never API routes.** The only route handlers are the REST API in `app/api/v1/**/route.ts` (for external clients); don't add route handlers anywhere else.
+- **REST API (`app/api/v1`) rules:**
+  - Resource-based RESTful paths: `GET/POST /customers`, `GET/PATCH/DELETE /customers/{id}`, children under their parent (`/customers/{id}/posts`, `/customers/{id}/notes`). `PATCH` is a partial update: load the record with its get action, merge the body over it, then call the update action. Path ids always override body ids.
+  - Route handlers contain **no business logic**: they call the existing Server Actions (so zod, `authorize`, soft delete, `pageLimit` and `revalidatePath` are shared) and use the helpers in `lib/api.ts` (`requireApiToken`, `readJsonBody`, `getQueryParam`, `withRichText`, `apiResult`). Every handler starts with `requireApiToken(request)`.
+  - `apiResult` maps action results to HTTP codes (201 on create, 400 validation, 401/403 from `authorize` messages, 404 `... bulunamadı`, 409 duplicates) and strips the panel-only `href`.
+  - A new action that should be reachable from the API gets a route here and a row in the README's REST API table.
 - Put actions in `actions/` at the project root, one file per model (e.g. `actions/customer.ts`, `actions/post.ts`), each starting with `'use server'`.
 - Declare actions as `export async function` (no arrow functions).
 - After a mutation (create / update / soft delete), call `revalidatePath` for the affected pages.
@@ -296,4 +307,5 @@ export default function AppPageClient() {
 - `npm run dev` — dev server
 - `npm run db:push` — sync schema to MongoDB
 - `npm run db:studio` — Prisma Studio
-- `npm run user:create` — create a login user (admin / moderator) interactively
+- `npm run user:create` — create a login user (admin / moderator) interactively, prints its API token once
+- `npm run api:tokens` — give users without an API token a new one, write the demo accounts' fixed tokens (`--force` regenerates non-demo tokens)

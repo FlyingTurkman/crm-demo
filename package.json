@@ -10,7 +10,8 @@
     "postinstall": "prisma generate",
     "db:push": "prisma db push",
     "db:studio": "prisma studio",
-    "user:create": "node --env-file=.env --disable-warning=MODULE_TYPELESS_PACKAGE_JSON lib/src/scripts/create-user.mts"
+    "user:create": "node --env-file=.env --disable-warning=MODULE_TYPELESS_PACKAGE_JSON lib/src/scripts/create-user.mts",
+    "api:tokens": "node --env-file=.env --disable-warning=MODULE_TYPELESS_PACKAGE_JSON lib/src/scripts/api-tokens.mts"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",

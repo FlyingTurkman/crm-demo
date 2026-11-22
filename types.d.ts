@@ -5,6 +5,7 @@ import type {
     Post as PostDB,
     User as UserDB,
     Session as SessionDB,
+    ApiToken as ApiTokenDB,
 } from '@prisma/client'
 
 
@@ -31,9 +32,14 @@ export type Post = PostDB & {
 
 export type User = UserDB & {
     sessions?: Session[]
+    apiTokens?: ApiToken[]
 }
 
 export type Session = SessionDB & {
     user?: User
 }
 
+
+export type ApiToken = ApiTokenDB & {
+    user?: User
+}

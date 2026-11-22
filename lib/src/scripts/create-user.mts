@@ -1,8 +1,9 @@
 // Creates a user from the terminal: npm run user:create
+import { createHash, randomBytes } from 'node:crypto'
 import { createInterface } from 'node:readline/promises'
 import { PrismaClient } from '@prisma/client'
 import argon2 from 'argon2'
-import { maxPasswordLength, minPasswordLength } from '../constants.ts'
+import { apiTokenPrefix, maxPasswordLength, minPasswordLength } from '../constants.ts'
 
 const prisma = new PrismaClient()
 
@@ -46,7 +47,14 @@ async function main() {
         },
     })
 
+    // Every user gets a REST API token, only its hash is stored (same format as lib/auth/apiToken.ts)
+    const apiToken = `${apiTokenPrefix}${randomBytes(96).toString('base64url')}`
+    await prisma.apiToken.create({
+        data: { userId: user.id, tokenHash: createHash('sha256').update(apiToken).digest('hex') },
+    })
+
     console.log(`Kullanıcı oluşturuldu: ${user.email} (${user.role})`)
+    console.log(`API token (bir daha gösterilmeyecek): ${apiToken}`)
 }
 
 main()

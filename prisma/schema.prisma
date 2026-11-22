@@ -76,6 +76,7 @@ model User {
   password  String
   role      UserRole  @default(moderator)
   sessions  Session[]
+  apiTokens ApiToken[]
   isDeleted Boolean   @default(false)
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
@@ -97,4 +98,21 @@ model Session {
 
   @@index([userId])
   @@map("sessions")
+}
+
+// REST API (/api/v1) access token of a user, sent as "Authorization: Bearer <token>".
+// Only the SHA-256 hash is stored. A user has one active token, regenerating it
+// soft-deletes the old one.
+model ApiToken {
+  id         String    @id @default(auto()) @map("_id") @db.ObjectId
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId     String    @db.ObjectId
+  tokenHash  String    @unique
+  lastUsedAt DateTime?
+  isDeleted  Boolean   @default(false)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@index([userId])
+  @@map("apiTokens")
 }
