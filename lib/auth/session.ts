@@ -1,3 +1,4 @@
+import { cache } from 'react'
 import { cookies } from 'next/headers'
 import { prisma } from '@/lib/prisma'
 import { UserDto } from '@/dtos/userDTO'
@@ -58,13 +59,15 @@ export async function validateAccessToken(accessToken: string) {
 }
 
 // Validates the access token cookie and returns the logged-in user as a UserDto, or null.
-export async function getCurrentUser() {
+// Memoized per request (React cache): the root layout, the app layout and every authorize()
+// in the same render share one database lookup instead of querying once each.
+export const getCurrentUser = cache(async function () {
     const cookieStore = await cookies()
     const accessToken = cookieStore.get(ACCESS_TOKEN_COOKIE)?.value
     if (!accessToken) return null
 
     return validateAccessToken(accessToken)
-}
+})
 
 // Exchanges a valid refresh token for a brand new token pair (rotation).
 // The old tokens stop working immediately. Returns null if the refresh token is invalid.

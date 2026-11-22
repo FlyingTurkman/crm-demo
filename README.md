@@ -495,6 +495,7 @@ cp .env.example .env        # DATABASE_URL'yi kendi bağlantı adresinizle doldu
 npm run db:push             # şemayı MongoDB'ye uygular (Mongo'da migration yok)
 npm run user:create         # ilk admin kullanıcıyı oluşturur (interaktif), API token'ını da yazar
 npm run api:tokens          # (opsiyonel) token'ı olmayan kullanıcılara token verir, demo token'larını yükler
+npm run db:seed -- --yes    # (opsiyonel) demo hesapları + 60 müşteri, ~140 blog, ~100 not ile örnek veri
 
 npm run dev                 # http://localhost:3000
 ```
@@ -515,6 +516,9 @@ DATABASE_URL="mongodb+srv://USER:PASSWORD@CLUSTER.mongodb.net/crm-demo"
 | `npm run db:push` | Prisma şemasını MongoDB'ye uygular |
 | `npm run db:studio` | Prisma Studio (veritabanını tarayıcıda görüntüleme) |
 | `npm run user:create` | Terminalden admin veya moderatör kullanıcı oluşturur, API token'ını bir kez gösterir |
+| `npm run db:seed -- --yes` | Demo verisi oluşturur: müşteri, blog ve notları **silip** yeniden üretir (son 90 güne yayılmış, birkaçı bugün), sadece demo hesaplarını bırakır. `--yes` olmadan sadece ne yapacağını yazar |
+| `npm run db:backup` | Bütün koleksiyonları `backups/<tarih>/` altına JSON (Extended JSON) olarak yedekler |
+| `npm run db:restore -- backups/<tarih>` | Yedeği `DATABASE_URL`'deki veritabanına yükler; sadece boş koleksiyonları doldurur |
 | `npm run api:tokens` | Token'ı olmayan kullanıcılara API token'ı verir, demo hesaplara sabit token'larını yazar (`--force` ile demo dışındakileri yeniler) |
 
 ---

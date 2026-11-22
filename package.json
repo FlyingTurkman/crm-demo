@@ -11,7 +11,10 @@
     "db:push": "prisma db push",
     "db:studio": "prisma studio",
     "user:create": "node --env-file=.env --disable-warning=MODULE_TYPELESS_PACKAGE_JSON lib/src/scripts/create-user.mts",
-    "api:tokens": "node --env-file=.env --disable-warning=MODULE_TYPELESS_PACKAGE_JSON lib/src/scripts/api-tokens.mts"
+    "api:tokens": "node --env-file=.env --disable-warning=MODULE_TYPELESS_PACKAGE_JSON lib/src/scripts/api-tokens.mts",
+    "db:backup": "node --env-file=.env --disable-warning=MODULE_TYPELESS_PACKAGE_JSON lib/src/scripts/db-backup.mts",
+    "db:restore": "node --env-file=.env --disable-warning=MODULE_TYPELESS_PACKAGE_JSON lib/src/scripts/db-restore.mts",
+    "db:seed": "node --env-file=.env --disable-warning=MODULE_TYPELESS_PACKAGE_JSON lib/src/scripts/seed-demo.mts"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",

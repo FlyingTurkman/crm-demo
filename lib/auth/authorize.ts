@@ -1,3 +1,4 @@
+import { cache } from 'react'
 import { headers } from 'next/headers'
 import type { UserDto } from '@/dtos/userDTO'
 import { getBearerToken, validateApiToken } from './apiToken'
@@ -14,8 +15,8 @@ type AuthorizeResult =
 
 // The caller of this request: an 'Authorization: Bearer <api token>' header (REST API)
 // wins over the session cookie (panel). A header with an invalid token is never
-// silently replaced by the cookie.
-async function getRequestUser() {
+// silently replaced by the cookie. Memoized per request like getCurrentUser().
+const getRequestUser = cache(async function () {
     const headerStore = await headers()
     const authorization = headerStore.get('authorization')
 
@@ -24,7 +25,7 @@ async function getRequestUser() {
         return token ? validateApiToken(token) : null
     }
     return getCurrentUser()
-}
+})
 
 // First line of every Server Action that needs a logged-in user:
 //   const auth = await authorize('customer:delete')

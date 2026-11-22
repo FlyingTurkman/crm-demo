@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { Prisma, UserRole } from '@prisma/client'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
+import { paginate } from '@/lib/pagination'
 import { authorize } from '@/lib/auth/authorize'
 import { issueApiToken } from '@/lib/auth/apiToken'
 import { hashPassword } from '@/lib/auth/password'
@@ -170,19 +171,19 @@ export async function getUsers(input: z.input<typeof getUsersSchema>): Promise<G
         ...getPeriodWhere(period),
     }
 
-    const total = await prisma.user.count({ where })
-    const pageCount = Math.max(1, Math.ceil(total / pageLimit))
-    // A page past the end (e.g. after filtering) falls back to the last page
-    const currentPage = Math.min(page, pageCount)
-
-    const users = await prisma.user.findMany({
-        where,
-        omit: { password: true },
-        orderBy: userOrderBy[sort],
-        skip: (currentPage - 1) * pageLimit,
-        take: pageLimit,
+    const result = await paginate(page, function () {
+        return prisma.user.count({ where })
+    }, function (skip) {
+        return prisma.user.findMany({
+            where,
+            omit: { password: true },
+            orderBy: userOrderBy[sort],
+            skip,
+            take: pageLimit,
+        })
     })
-    return { status: true, users: users.map((user) => toManagedUser(user)), total, page: currentPage, pageCount }
+    const users = result.items
+    return { status: true, users: users.map((user) => toManagedUser(user)), total: result.total, page: result.page, pageCount: result.pageCount }
 }
 
 export async function getRecentUsers(): Promise<GetRecentUsersResponse> {

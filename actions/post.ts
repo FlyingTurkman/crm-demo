@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { PostStatus, Prisma } from '@prisma/client'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
+import { paginate } from '@/lib/pagination'
 import { authorize } from '@/lib/auth/authorize'
 import { sanitizeRichTextHtml } from '@/lib/richText'
 import { getPeriodWhere, type CreatedPeriod } from '@/lib/period'
@@ -185,18 +186,18 @@ export async function getPosts(input: z.input<typeof getPostsSchema>): Promise<G
         customerId,
     }
 
-    const total = await prisma.post.count({ where })
-    const pageCount = Math.max(1, Math.ceil(total / pageLimit))
-    // A page past the end (e.g. after filtering) falls back to the last page
-    const currentPage = Math.min(page, pageCount)
-
-    const posts = await prisma.post.findMany({
-        where,
-        orderBy: postOrderBy[sort],
-        skip: (currentPage - 1) * pageLimit,
-        take: pageLimit,
+    const result = await paginate(page, function () {
+        return prisma.post.count({ where })
+    }, function (skip) {
+        return prisma.post.findMany({
+            where,
+            orderBy: postOrderBy[sort],
+            skip,
+            take: pageLimit,
+        })
     })
-    return { status: true, posts, total, page: currentPage, pageCount }
+    const posts = result.items
+    return { status: true, posts, total: result.total, page: result.page, pageCount: result.pageCount }
 }
 
 // Blogs of all customers, for /app/blogs
@@ -214,19 +215,19 @@ export async function getAllPosts(input: z.input<typeof getAllPostsSchema>): Pro
     const { query, status, period, sort, page } = parsed.data
     const where = getPostListWhere(query, status, period)
 
-    const total = await prisma.post.count({ where })
-    const pageCount = Math.max(1, Math.ceil(total / pageLimit))
-    // A page past the end (e.g. after filtering) falls back to the last page
-    const currentPage = Math.min(page, pageCount)
-
-    const posts = await prisma.post.findMany({
-        where,
-        orderBy: postOrderBy[sort],
-        skip: (currentPage - 1) * pageLimit,
-        take: pageLimit,
-        include: { customer: true },
+    const result = await paginate(page, function () {
+        return prisma.post.count({ where })
+    }, function (skip) {
+        return prisma.post.findMany({
+            where,
+            orderBy: postOrderBy[sort],
+            skip,
+            take: pageLimit,
+            include: { customer: true },
+        })
     })
-    return { status: true, posts, total, page: currentPage, pageCount }
+    const posts = result.items
+    return { status: true, posts, total: result.total, page: result.page, pageCount: result.pageCount }
 }
 
 export async function getRecentPosts(): Promise<GetRecentPostsResponse> {

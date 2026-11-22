@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import type { Prisma } from '@prisma/client'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
+import { paginate } from '@/lib/pagination'
 import { authorize } from '@/lib/auth/authorize'
 import { sanitizeRichTextHtml } from '@/lib/richText'
 import { getPeriodWhere, type CreatedPeriod } from '@/lib/period'
@@ -157,18 +158,18 @@ export async function getNotes(input: z.input<typeof getNotesSchema>): Promise<G
         customerId,
     }
 
-    const total = await prisma.note.count({ where })
-    const pageCount = Math.max(1, Math.ceil(total / pageLimit))
-    // A page past the end (e.g. after filtering) falls back to the last page
-    const currentPage = Math.min(page, pageCount)
-
-    const notes = await prisma.note.findMany({
-        where,
-        orderBy: noteOrderBy[sort],
-        skip: (currentPage - 1) * pageLimit,
-        take: pageLimit,
+    const result = await paginate(page, function () {
+        return prisma.note.count({ where })
+    }, function (skip) {
+        return prisma.note.findMany({
+            where,
+            orderBy: noteOrderBy[sort],
+            skip,
+            take: pageLimit,
+        })
     })
-    return { status: true, notes, total, page: currentPage, pageCount }
+    const notes = result.items
+    return { status: true, notes, total: result.total, page: result.page, pageCount: result.pageCount }
 }
 
 // Notes of all customers, for /app/notes
@@ -186,19 +187,19 @@ export async function getAllNotes(input: z.input<typeof getAllNotesSchema>): Pro
     const { query, period, sort, page } = parsed.data
     const where = getNoteListWhere(query, period)
 
-    const total = await prisma.note.count({ where })
-    const pageCount = Math.max(1, Math.ceil(total / pageLimit))
-    // A page past the end (e.g. after filtering) falls back to the last page
-    const currentPage = Math.min(page, pageCount)
-
-    const notes = await prisma.note.findMany({
-        where,
-        orderBy: noteOrderBy[sort],
-        skip: (currentPage - 1) * pageLimit,
-        take: pageLimit,
-        include: { customer: true },
+    const result = await paginate(page, function () {
+        return prisma.note.count({ where })
+    }, function (skip) {
+        return prisma.note.findMany({
+            where,
+            orderBy: noteOrderBy[sort],
+            skip,
+            take: pageLimit,
+            include: { customer: true },
+        })
     })
-    return { status: true, notes, total, page: currentPage, pageCount }
+    const notes = result.items
+    return { status: true, notes, total: result.total, page: result.page, pageCount: result.pageCount }
 }
 
 export async function getRecentNotes(): Promise<GetRecentNotesResponse> {

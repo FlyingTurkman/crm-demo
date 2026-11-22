@@ -14,7 +14,14 @@ const APP_PATH = "/app"
 // Route rules:
 // - "/"       → login page, logged-in users are redirected to /app
 // - "/app/**" → protected panel, guests are redirected to /
-// Expired access tokens are renewed with the refresh token on the way.
+//
+// To keep every request fast, /app/** is only checked optimistically here (is there an access
+// token cookie?). The real check against the database is done once per request by
+// getCurrentUser() / authorize() in the layouts and Server Actions; a revoked session there
+// redirects to "/", where this proxy validates the cookies fully and clears them.
+// The database is only touched here when:
+// - the access token cookie is gone (it expires with the token) but a refresh token exists → rotation
+// - on the login page, so a revoked session can't bounce between "/" and "/app"
 export async function proxy(request: NextRequest) {
     const { pathname } = request.nextUrl
     const isLoginPage = pathname === LOGIN_PATH
@@ -23,7 +30,11 @@ export async function proxy(request: NextRequest) {
     const accessToken = request.cookies.get(ACCESS_TOKEN_COOKIE)?.value
     const refreshToken = request.cookies.get(REFRESH_TOKEN_COOKIE)?.value
 
-    let isAuthenticated = accessToken ? Boolean(await validateAccessToken(accessToken)) : false
+    let isAuthenticated = false
+    if (accessToken) {
+        isAuthenticated = isLoginPage ? Boolean(await validateAccessToken(accessToken)) : true
+    }
+
     let newTokens: { accessToken: string, refreshToken: string } | null = null
 
     if (!isAuthenticated && refreshToken) {
@@ -61,6 +72,7 @@ export async function proxy(request: NextRequest) {
     return response
 }
 
+// The REST API (/api) authenticates with Bearer tokens, not cookies, so it skips the proxy
 export const config = {
-    matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)"],
+    matcher: ["/((?!api/|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)"],
 }

@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { PostStatus, Prisma } from '@prisma/client'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
+import { paginate } from '@/lib/pagination'
 import { authorize } from '@/lib/auth/authorize'
 import { getPeriodWhere } from '@/lib/period'
 import { escapeRegex } from '@/lib/search'
@@ -145,26 +146,26 @@ export async function getCustomers(input: z.input<typeof getCustomersSchema>): P
         name: { fullName: 'asc' },
     }
 
-    const total = await prisma.customer.count({ where })
-    const pageCount = Math.max(1, Math.ceil(total / pageLimit))
-    // A page past the end (e.g. after filtering) falls back to the last page
-    const currentPage = Math.min(page, pageCount)
-
-    const customers = await prisma.customer.findMany({
-        where,
-        orderBy: orderBy[sort],
-        skip: (currentPage - 1) * pageLimit,
-        take: pageLimit,
-        include: {
-            _count: {
-                select: {
-                    notes: { where: { isDeleted: false } },
-                    posts: { where: { isDeleted: false } },
+    const result = await paginate(page, function () {
+        return prisma.customer.count({ where })
+    }, function (skip) {
+        return prisma.customer.findMany({
+            where,
+            orderBy: orderBy[sort],
+            skip,
+            take: pageLimit,
+            include: {
+                _count: {
+                    select: {
+                        notes: { where: { isDeleted: false } },
+                        posts: { where: { isDeleted: false } },
+                    },
                 },
             },
-        },
+        })
     })
-    return { status: true, customers, total, page: currentPage, pageCount }
+    const customers = result.items
+    return { status: true, customers, total: result.total, page: result.page, pageCount: result.pageCount }
 }
 
 export async function getRecentCustomers(): Promise<GetRecentCustomersResponse> {
@@ -194,26 +195,28 @@ export async function getCustomer(input: z.input<typeof getCustomerSchema>): Pro
 
     const { customerId } = parsed.data
 
-    const customer = await prisma.customer.findFirst({
-        where: { id: customerId, isDeleted: false },
-        include: {
-            _count: {
-                select: {
-                    notes: { where: { isDeleted: false } },
-                    posts: { where: { isDeleted: false } },
+    // Both queries only need the id, so they run in parallel (the counts are ignored if not found)
+    const [customer, statusGroups] = await Promise.all([
+        prisma.customer.findFirst({
+            where: { id: customerId, isDeleted: false },
+            include: {
+                _count: {
+                    select: {
+                        notes: { where: { isDeleted: false } },
+                        posts: { where: { isDeleted: false } },
+                    },
                 },
             },
-        },
-    })
+        }),
+        prisma.post.groupBy({
+            by: ['status'],
+            where: { customerId, isDeleted: false },
+            _count: { _all: true },
+        }),
+    ])
     if (!customer) {
         return { status: false, message: 'Müşteri bulunamadı' }
     }
-
-    const statusGroups = await prisma.post.groupBy({
-        by: ['status'],
-        where: { customerId, isDeleted: false },
-        _count: { _all: true },
-    })
     const postStatusCounts: Record<PostStatus, number> = { draft: 0, inReview: 0, published: 0 }
     statusGroups.forEach(function (group) {
         postStatusCounts[group.status] = group._count._all

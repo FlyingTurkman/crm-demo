@@ -90,6 +90,7 @@
 - Put actions in `actions/` at the project root, one file per model (e.g. `actions/customer.ts`, `actions/post.ts`), each starting with `'use server'`.
 - Declare actions as `export async function` (no arrow functions).
 - After a mutation (create / update / soft delete), call `revalidatePath` for the affected pages.
+- **Prisma + MongoDB bug:** `groupBy` with `orderBy: { _count: ... }` and `take` returns arbitrary, unsorted groups. For "top N by count" use `aggregateRaw` with `$group` → `$sort` → `$limit` (see `topCustomers` in `actions/dashboard.ts`).
 - **Every list query is limited to at most `pageLimit` (50, `lib/src/constants.ts`) records** — never a `findMany` without `take`. Lists that can grow past it are paginated: the action takes a `page`, returns `total`, `page` and `pageCount` (`skip: (page - 1) * pageLimit, take: pageLimit`, a page past the end falls back to the last one), and the page uses `components/app/common/ListPagination.tsx` with the page in `?page=` (via `use-search-query`). Smaller fixed limits (`sidebarCustomerLimit`, `searchResultLimit`) stay as they are.
 
 ## Validation rules
@@ -314,4 +315,6 @@ export default function AppPageClient() {
 - `npm run db:push` — sync schema to MongoDB
 - `npm run db:studio` — Prisma Studio
 - `npm run user:create` — create a login user (admin / moderator) interactively, prints its API token once
+- `npm run db:seed -- --yes` — reset to demo data: replaces customers / blogs / notes with generated ones and keeps only the demo accounts (hard-deletes: a setup tool, not app code)
+- `npm run db:backup` / `npm run db:restore -- backups/<date>` — JSON (Extended JSON) backup of every collection / restore into empty collections (`backups/` is git-ignored: it has password and token hashes)
 - `npm run api:tokens` — give users without an API token a new one, write the demo accounts' fixed tokens (`--force` regenerates non-demo tokens)

@@ -70,7 +70,7 @@ export async function getDashboardStats(input: z.input<typeof getDashboardStatsS
         recentCustomers,
         recentPosts,
         recentNotes,
-        postGroups,
+        topPostGroups,
     ] = await Promise.all([
         prisma.customer.count({ where: customerWhere }),
         prisma.customer.count({ where: { ...customerWhere, ...today } }),
@@ -104,14 +104,21 @@ export async function getDashboardStats(input: z.input<typeof getDashboardStatsS
             take: dashboardListLimit,
             include: { customer: true },
         }),
-        prisma.post.groupBy({
-            by: ['customerId'],
-            where: { isDeleted: false, ...asOfDay },
-            _count: { _all: true },
-            orderBy: { _count: { customerId: 'desc' } },
-            take: dashboardListLimit,
-        }),
+        // Raw pipeline: Prisma's MongoDB groupBy ignores `orderBy: { _count }` when combined with `take`
+        // and returns arbitrary groups, so sorting and limiting are done by MongoDB itself
+        prisma.post.aggregateRaw({
+            pipeline: [
+                { $match: { isDeleted: false, createdAt: { $lt: { $date: dayRange.end.toISOString() } } } },
+                { $group: { _id: '$customerId', postCount: { $sum: 1 } } },
+                { $sort: { postCount: -1, _id: 1 } },
+                { $limit: dashboardListLimit },
+            ],
+        }) as unknown as Promise<{ _id: { $oid: string }, postCount: number }[]>,
     ])
+    const postGroups = topPostGroups.map((group) => ({
+        customerId: group._id.$oid,
+        postCount: group.postCount,
+    }))
 
     const byStatus: Record<PostStatus, number> = { draft: 0, inReview: 0, published: 0 }
     statusGroups.forEach(function (group) {
@@ -132,7 +139,7 @@ export async function getDashboardStats(input: z.input<typeof getDashboardStatsS
             customer: topCustomerRecords.find(function (customer) {
                 return customer.id === group.customerId
             }),
-            postCount: group._count._all,
+            postCount: group.postCount,
         }))
         .filter(function (item): item is { customer: Customer, postCount: number } {
             return Boolean(item.customer)
