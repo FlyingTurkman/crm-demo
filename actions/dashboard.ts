@@ -4,7 +4,7 @@ import type { PostStatus } from '@prisma/client'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { authorize } from '@/lib/auth/authorize'
-import { getPeriodStart, getStartOfToday } from '@/lib/period'
+import { getRangeEndingOn, parseDateParam } from '@/lib/period'
 import { createdPeriods, dashboardListLimit } from '@/lib/src/constants'
 import type { Customer, Note, Post, Response } from '@/types'
 
@@ -13,12 +13,16 @@ import type { Customer, Note, Post, Response } from '@/types'
 const getDashboardStatsSchema = z.object({
     // Range of the 'recently added' section, today by default
     period: z.enum(createdPeriods, 'Geçersiz tarih aralığı').default('today'),
+    // Day the dashboard is looked at (YYYY-MM-DD), today by default; future dates fall back to today
+    date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Geçersiz tarih').optional(),
 })
 
 export type DashboardStats = {
-    customers: { total: number, today: number, inPeriod: number }
-    posts: { total: number, today: number, inPeriod: number, byStatus: Record<PostStatus, number> }
-    notes: { total: number, today: number, inPeriod: number }
+    // total: created until the end of the selected day, onDay: created on that day,
+    // inPeriod: created in the range that ends with that day
+    customers: { total: number, onDay: number, inPeriod: number }
+    posts: { total: number, onDay: number, inPeriod: number, byStatus: Record<PostStatus, number> }
+    notes: { total: number, onDay: number, inPeriod: number }
     recentCustomers: Customer[]
     recentPosts: Post[]
     recentNotes: Note[]
@@ -40,12 +44,17 @@ export async function getDashboardStats(input: z.input<typeof getDashboardStatsS
         return { status: false, message: parsed.error.issues[0].message }
     }
 
-    const today = { createdAt: { gte: getStartOfToday() } }
-    const inPeriod = { createdAt: { gte: getPeriodStart(parsed.data.period) } }
-    const customerWhere = { isDeleted: false }
+    const day = parseDateParam(parsed.data.date)
+    const dayRange = getRangeEndingOn(day, 'today')
+    const periodRange = getRangeEndingOn(day, parsed.data.period)
+    const today = { createdAt: { gte: dayRange.start, lt: dayRange.end } }
+    const inPeriod = { createdAt: { gte: periodRange.start, lt: periodRange.end } }
+    // Everything is counted as of the end of the selected day
+    const asOfDay = { createdAt: { lt: dayRange.end } }
+    const customerWhere = { isDeleted: false, ...asOfDay }
     // Children of a deleted customer are soft-deleted with it, the relation filter is a safety net
-    const postWhere = { isDeleted: false, customer: { isDeleted: false } }
-    const noteWhere = { isDeleted: false, customer: { isDeleted: false } }
+    const postWhere = { isDeleted: false, customer: { isDeleted: false }, ...asOfDay }
+    const noteWhere = { isDeleted: false, customer: { isDeleted: false }, ...asOfDay }
 
     const [
         customerTotal,
@@ -74,7 +83,8 @@ export async function getDashboardStats(input: z.input<typeof getDashboardStatsS
         prisma.note.count({ where: { ...noteWhere, ...inPeriod } }),
         prisma.post.groupBy({
             by: ['status'],
-            where: { isDeleted: false },
+            // Status is the current one: status changes have no history
+            where: { isDeleted: false, ...asOfDay },
             _count: { _all: true },
         }),
         prisma.customer.findMany({
@@ -96,7 +106,7 @@ export async function getDashboardStats(input: z.input<typeof getDashboardStatsS
         }),
         prisma.post.groupBy({
             by: ['customerId'],
-            where: { isDeleted: false },
+            where: { isDeleted: false, ...asOfDay },
             _count: { _all: true },
             orderBy: { _count: { customerId: 'desc' } },
             take: dashboardListLimit,
@@ -131,9 +141,9 @@ export async function getDashboardStats(input: z.input<typeof getDashboardStatsS
     return {
         status: true,
         stats: {
-            customers: { total: customerTotal, today: customerToday, inPeriod: customerInPeriod },
-            posts: { total: postTotal, today: postToday, inPeriod: postInPeriod, byStatus },
-            notes: { total: noteTotal, today: noteToday, inPeriod: noteInPeriod },
+            customers: { total: customerTotal, onDay: customerToday, inPeriod: customerInPeriod },
+            posts: { total: postTotal, onDay: postToday, inPeriod: postInPeriod, byStatus },
+            notes: { total: noteTotal, onDay: noteToday, inPeriod: noteInPeriod },
             recentCustomers,
             recentPosts,
             recentNotes,

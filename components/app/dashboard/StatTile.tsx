@@ -38,6 +38,9 @@ export default function StatTile({
                         {note} <IoArrowForward className='size-3' aria-hidden />
                     </Link>
                 )}
+                {note && !noteHref && (
+                    <span className='text-sm text-muted-foreground'>{note}</span>
+                )}
             </CardContent>
         </Card>
     )

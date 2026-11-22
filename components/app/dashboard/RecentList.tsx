@@ -26,7 +26,8 @@ export default function RecentList({
     icon: IconType
     count: number
     items: RecentListItem[]
-    allHref: string
+    // Left out when no list filter matches the shown range
+    allHref?: string
     emptyText: string
     // Longer ranges show the day too, not only the time
     showDate: boolean
@@ -39,7 +40,7 @@ export default function RecentList({
                     {title}
                     <Badge variant='secondary'>{count}</Badge>
                 </CardTitle>
-                {count > 0 && (
+                {count > 0 && allHref && (
                     <CardAction>
                         <Link href={allHref} className='text-sm text-muted-foreground hover:text-foreground hover:underline'>
                             Tümünü gör

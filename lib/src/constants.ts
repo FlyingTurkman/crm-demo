@@ -103,3 +103,13 @@ export const userSortLabels = {
     name: 'Ada göre (A-Z)',
 }
 export const sidebarUserLimit = 20
+
+// Demo accounts shown on the login page (this is a demo app, change them for real use)
+export const demoAccounts = [
+    { role: 'admin', email: 'admin@testmail.com', password: '12345678' },
+    { role: 'moderator', email: 'moderator@testmail.com', password: '12345678' },
+] as const
+
+// Project links shown on the login page (blob/HEAD always points to the default branch)
+export const githubRepoUrl = 'https://github.com/FlyingTurkman/crm-demo'
+export const githubReadmeUrl = 'https://github.com/FlyingTurkman/crm-demo/blob/HEAD/README.md'
