@@ -16,6 +16,10 @@ export type Permission =
     | 'note:update'
     | 'note:delete'
     | 'dashboard:read'
+    | 'user:read'
+    | 'user:create'
+    | 'user:update'
+    | 'user:delete'
 
 const allPermissions: Permission[] = [
     'customer:read',
@@ -31,13 +35,18 @@ const allPermissions: Permission[] = [
     'note:update',
     'note:delete',
     'dashboard:read',
+    'user:read',
+    'user:create',
+    'user:update',
+    'user:delete',
 ]
 
-// Single source of truth for roles. Moderators can do everything except deleting.
+// Single source of truth for roles.
+// Moderators can do everything except deleting and managing system users (admin panel).
 export const rolePermissions: Record<UserRole, Permission[]> = {
     admin: allPermissions,
     moderator: allPermissions.filter(function (permission) {
-        return !permission.endsWith(':delete')
+        return !permission.endsWith(':delete') && !permission.startsWith('user:')
     }),
 }
 

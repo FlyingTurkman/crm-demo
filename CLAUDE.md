@@ -36,7 +36,7 @@
       return { status: false, message: auth.message }
   }
   ```
-- **Role permissions live only in `lib/auth/permissions.ts`** (`Permission` type, `rolePermissions`, `hasPermission`). Admin can do everything; moderator can do everything except `*:delete`. A new action needs a matching `Permission` (`<model>:read|create|update|delete`); change role rights there, never with `role === '...'` checks in actions.
+- **Role permissions live only in `lib/auth/permissions.ts`** (`Permission` type, `rolePermissions`, `hasPermission`). Admin can do everything; moderator can do everything except `*:delete` and `user:*` (the admin panel). A new action needs a matching `Permission` (`<model>:read|create|update|delete`); change role rights there, never with `role === '...'` checks in actions.
 - Client components may call `hasPermission(user?.role, ...)` only to hide UI (e.g. `EditDeleteMenu`'s `deletePermission` hides "Sil"); the real check is always `authorize()` in the action.
 - Create users from the terminal with `npm run user:create`.
 
@@ -46,6 +46,8 @@
 - User DTOs (`dtos/userDTO.ts`):
   - `UserDto` — the user's own account data. `email` is masked with `maskEmail` (`test@testmail.com` → `t***@testmail.com`), `password` is always `PASSWORD_MASK` (`'***'`); the hash is never copied.
   - `PublicUserDto` — data safe to show to other users: no email, password, role or relations.
+  - `ManagedUserDto` — a user as an admin sees it in the admin panel (`actions/user.ts`, `user:*` permissions only): unmasked email so it can be edited, never the password. User queries there use `omit: { password: true }` so the hash is never even read.
+- **Admin panel (`/app/admin`)** manages system users. Its layout returns 404 unless the user has `user:read`; the menu item is hidden the same way. An admin can't delete their own account or remove their own admin role; deleting a user (and an admin resetting someone's password) soft-deletes their sessions so they are logged out at once.
 - **Next.js can't pass class instances to client components or return them from Server Actions** ("Only plain objects ... can be passed to Client Components"). Spread the DTO into a plain object at that boundary — the censoring already happened in the constructor:
 
   ```ts

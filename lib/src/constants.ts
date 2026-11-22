@@ -90,3 +90,16 @@ export const createdPeriodLabels = {
 
 // Dashboard
 export const dashboardListLimit = 5
+
+// System users (admin panel)
+export const userRoleLabels = {
+    admin: 'Admin',
+    moderator: 'Moderatör',
+}
+export const userSorts = ['updated', 'created', 'name'] as const
+export const userSortLabels = {
+    updated: 'Son güncellenen',
+    created: 'Son eklenen',
+    name: 'Ada göre (A-Z)',
+}
+export const sidebarUserLimit = 20

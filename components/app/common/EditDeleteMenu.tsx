@@ -38,6 +38,7 @@ export default function EditDeleteMenu({
     editHref,
     deleteDescription,
     deletePermission,
+    canDelete: canDeleteItem = true,
     onDelete,
     size = 'default'
 }: {
@@ -46,12 +47,14 @@ export default function EditDeleteMenu({
     deleteDescription: string
     // Users without it don't see the delete item (the action checks it again)
     deletePermission: Permission
+    // Extra per-item rule, e.g. an admin can't delete their own account
+    canDelete?: boolean
     onDelete: () => Promise<DeleteResult>
     size?: 'default' | 'sm'
 }) {
     const router = useRouter()
     const { user } = useSiteContext()
-    const canDelete = hasPermission(user?.role, deletePermission)
+    const canDelete = canDeleteItem && hasPermission(user?.role, deletePermission)
     const [isDeleteOpen, setIsDeleteOpen] = useState(false)
     const [isDeleting, setIsDeleting] = useState(false)
 

@@ -2,6 +2,7 @@ import { cache } from 'react'
 import { getCustomer } from '@/actions/customer'
 import { getNote } from '@/actions/note'
 import { getPost } from '@/actions/post'
+import { getUser } from '@/actions/user'
 
 // Request-scoped memoized reads for server components.
 // A layout, its page and generateMetadata often need the same record:
@@ -20,6 +21,10 @@ export const getNoteCached = cache(async function (noteId: string) {
     return getNote({ noteId })
 })
 
+export const getUserCached = cache(async function (userId: string) {
+    return getUser({ userId })
+})
+
 // Page titles for generateMetadata, e.g. 'Ahmet Yılmaz - Bloglar'
 export async function getCustomerPageTitle(customerId: string, section?: string) {
     const result = await getCustomerCached(customerId)
@@ -27,6 +32,14 @@ export async function getCustomerPageTitle(customerId: string, section?: string)
         return 'Müşteri bulunamadı'
     }
     return section ? `${result.customer.fullName} - ${section}` : result.customer.fullName
+}
+
+export async function getUserPageTitle(userId: string, section?: string) {
+    const result = await getUserCached(userId)
+    if (!result.user) {
+        return 'Kullanıcı bulunamadı'
+    }
+    return section ? `${result.user.fullName} - ${section}` : result.user.fullName
 }
 
 export async function getPostPageTitle(postId: string, section?: string) {

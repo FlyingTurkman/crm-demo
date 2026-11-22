@@ -38,6 +38,30 @@ export class UserDto {
     }
 }
 
+// A user as an admin sees it in the admin panel (only returned by `user:*` actions).
+// Email is NOT masked so it can be edited; the password / hash is never copied.
+export class ManagedUserDto {
+    id: string
+    name: string
+    surname: string
+    fullName: string
+    email: string
+    role: User['role']
+    createdAt: Date
+    updatedAt: Date
+
+    constructor(data: Omit<User, 'password'>) {
+        this.id = data.id
+        this.name = data.name
+        this.surname = data.surname
+        this.fullName = data.fullName
+        this.email = data.email
+        this.role = data.role
+        this.createdAt = data.createdAt
+        this.updatedAt = data.updatedAt
+    }
+}
+
 // Public data of a user, safe to show to other users.
 // No email, password, role or relations.
 export class PublicUserDto {
