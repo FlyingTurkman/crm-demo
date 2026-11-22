@@ -48,7 +48,7 @@ export default function AppPageClient({
             week: `${dayLabel} ile biten 7 günde eklenenler`,
             month: `${dayLabel} ile biten 30 günde eklenenler`,
         }
-    const emptyText = period === 'today' ? `${isToday ? 'Bugün' : 'Bu gün'} eklenen yok` : 'Bu aralıkta eklenen yok'
+    const emptyText = period === 'today' ? (isToday ? 'Bugün eklenen yok' : `${dayLabel} tarihinde eklenen yok`) : 'Bu aralıkta eklenen yok'
 
     if (!stats) {
         return (
