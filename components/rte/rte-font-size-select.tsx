@@ -33,7 +33,7 @@ function RTEFontSizeSelect({
   const { activeFontSize, applyFontSize } = useRTE()
 
   return (
-    <Select value={activeFontSize} onValueChange={value => value && applyFontSize(String(value))} {...props}>
+    <Select items={options} value={activeFontSize} onValueChange={value => value && applyFontSize(String(value))} {...props}>
       <SelectTrigger data-slot="rte-font-size-select" size="sm" className="w-28">
         <ALargeSmall className="size-4 text-muted-foreground" />
         <SelectValue placeholder="Size" />

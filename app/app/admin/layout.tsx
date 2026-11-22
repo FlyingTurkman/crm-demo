@@ -30,13 +30,16 @@ export default async function AdminLayout({
         <SidebarProvider defaultOpen={defaultOpen} className='min-h-[calc(100svh-3.5rem)]'>
             <AdminSidebar users={result.users ?? []} />
             <SidebarInset>
-                <div className='flex items-center gap-2 border-b p-2'>
+                {/* On mobile the breadcrumb wraps to its own row */}
+                <div className='flex flex-wrap items-center gap-2 border-b p-2'>
                     <SidebarTrigger />
                     <div className='shrink-0'>
                         <UserSearchBar />
                     </div>
-                    <Separator orientation='vertical' className='h-4' />
-                    <AdminBreadcrumb />
+                    <Separator orientation='vertical' className='hidden h-4 md:block' />
+                    <div className='w-full min-w-0 md:w-auto md:flex-1'>
+                        <AdminBreadcrumb />
+                    </div>
                 </div>
                 {children}
             </SidebarInset>

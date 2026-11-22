@@ -37,6 +37,15 @@ const fontOptions = [
     { label: 'Geist Mono', value: 'var(--font-geist-mono), monospace' },
 ]
 
+// Same sizes as the editor's defaults, with Turkish labels
+const fontSizeOptions = [
+    { label: 'Küçük', value: '12px' },
+    { label: 'Varsayılan', value: 'inherit' },
+    { label: 'Orta', value: '16px' },
+    { label: 'Büyük', value: '20px' },
+    { label: 'Çok büyük', value: '24px' },
+]
+
 // Must be rendered on the client only (uses DOMParser), load it with next/dynamic + ssr: false
 export default function RichTextEditor({
     defaultRawContent,
@@ -60,7 +69,7 @@ export default function RichTextEditor({
                 <RTERedo />
                 <RTESeparator />
                 <RTEFontSelect options={fontOptions} />
-                <RTEFontSizeSelect />
+                <RTEFontSizeSelect options={fontSizeOptions} />
                 <RTEColorSelect />
                 <RTEMarkerSelect />
                 <RTESeparator />

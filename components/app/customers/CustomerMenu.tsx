@@ -40,7 +40,7 @@ export default function CustomerMenu({ customer }: { customer: Customer }) {
     ]
 
     return (
-        <nav className='flex flex-row gap-2'>
+        <nav className='flex flex-row flex-wrap gap-2'>
             {menus.map((menu) => (
                 <DropdownMenu key={menu.id}>
                     <DropdownMenuTrigger

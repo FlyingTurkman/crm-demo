@@ -16,7 +16,7 @@ import {
 export default function BlogsBreadcrumb() {
     return (
         <Breadcrumb className='min-w-0'>
-            <BreadcrumbList className='flex-nowrap'>
+            <BreadcrumbList className='md:flex-nowrap'>
                 <BreadcrumbItem>
                     <BreadcrumbLink render={<Link href='/app' aria-label='Ana Sayfa' />}>
                         <IoHome className='size-4' />

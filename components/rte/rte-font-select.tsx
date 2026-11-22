@@ -38,7 +38,7 @@ function RTEFontSelect({ options = RTE_FONT_OPTIONS, ...props }: RTEFontSelectPr
   const { activeFontFamily, applyFontFamily } = useRTE()
 
   return (
-    <Select value={activeFontFamily} onValueChange={value => value && applyFontFamily(String(value))} {...props}>
+    <Select items={options} value={activeFontFamily} onValueChange={value => value && applyFontFamily(String(value))} {...props}>
       <SelectTrigger data-slot="rte-font-select" size="sm" className="w-40">
         <Type className="size-4 text-muted-foreground" />
         <SelectValue placeholder="Font" />

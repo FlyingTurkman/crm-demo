@@ -49,7 +49,7 @@ export default function NoteSearchBar() {
             <PopoverTrigger className={buttonVariants({ variant: 'secondary' })}>
                 Not ara <IoSearch />
             </PopoverTrigger>
-            <PopoverContent align='start' className='w-80 p-0'>
+            <PopoverContent align='start' className='w-80 max-w-[calc(100vw-2rem)] p-0'>
                 <Command shouldFilter={false}>
                     <CommandInput
                         placeholder='Not içeriğinde ara...'

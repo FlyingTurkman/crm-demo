@@ -110,7 +110,7 @@ export default function CustomerBlogsPageClient({
                             </Link>
                         </CardTitle>
                         <CardDescription>Son güncelleme: {formatDate(post.updatedAt)}</CardDescription>
-                        <CardAction className='flex flex-row gap-2'>
+                        <CardAction className='flex flex-col items-end gap-2 sm:flex-row'>
                             <PostStatusSelect postId={post.id} status={post.status} />
                             <EditDeleteMenu
                                 size='sm'
