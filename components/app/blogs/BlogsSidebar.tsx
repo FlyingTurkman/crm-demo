@@ -2,7 +2,8 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { IoDocumentText, IoList, IoNewspaper } from 'react-icons/io5'
+import { IoAdd, IoDocumentText, IoList, IoNewspaper } from 'react-icons/io5'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import {
     Sidebar,
     SidebarContent,
@@ -15,10 +16,11 @@ import {
     SidebarMenuItem,
     SidebarRail,
 } from '@/components/ui/sidebar'
-import type { Post } from '@/types'
+import type { Customer, Post } from '@/types'
 
 const sidebarItems = [
     { href: '/app/blogs', label: 'Blog Listesi', icon: IoList },
+    { href: '/app/blogs/add', label: 'Yeni Blog', icon: IoAdd },
 ]
 
 export default function BlogsSidebar({ posts }: { posts: Post[] }) {
@@ -75,8 +77,13 @@ export default function BlogsSidebar({ posts }: { posts: Post[] }) {
                                         tooltip={post.title}
                                         render={<Link href={`/app/customers/${post.customerId}/blogs/${post.id}`} />}
                                     >
-                                        <IoDocumentText />
-                                        <div className='grid flex-1 leading-tight'>
+                                        <IoDocumentText className='group-data-[collapsible=icon]:hidden' />
+                                        {/* Collapsed (icon) sidebar: the customer's avatar replaces the icon and the text,
+                                            which would otherwise squeeze into one letter per line */}
+                                        <Avatar size='sm' className='hidden group-data-[collapsible=icon]:flex'>
+                                            <AvatarFallback>{getInitials(post.customer)}</AvatarFallback>
+                                        </Avatar>
+                                        <div className='grid flex-1 leading-tight group-data-[collapsible=icon]:hidden'>
                                             <span className='truncate'>{post.title}</span>
                                             <span className='truncate text-xs text-muted-foreground'>
                                                 {post.customer?.fullName}
@@ -92,4 +99,11 @@ export default function BlogsSidebar({ posts }: { posts: Post[] }) {
             <SidebarRail />
         </Sidebar>
     )
+
+    function getInitials(customer: Customer | undefined) {
+        if (!customer) {
+            return '?'
+        }
+        return `${customer.name.charAt(0)}${customer.surname.charAt(0)}`.toLocaleUpperCase('tr-TR')
+    }
 }

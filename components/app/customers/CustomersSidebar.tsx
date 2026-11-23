@@ -81,7 +81,8 @@ export default function CustomersSidebar({ customers }: { customers: Customer[] 
                                         <Avatar size='sm'>
                                             <AvatarFallback>{getInitials(customer)}</AvatarFallback>
                                         </Avatar>
-                                        <div className='grid flex-1 leading-tight'>
+                                        {/* Collapsed (icon) sidebar: only the icon / avatar stays, the text would squeeze into one letter per line */}
+                                        <div className='grid flex-1 leading-tight group-data-[collapsible=icon]:hidden'>
                                             <span className='truncate'>{customer.fullName}</span>
                                             <span className='truncate text-xs text-muted-foreground'>
                                                 {customer.company ?? customer.email}

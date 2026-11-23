@@ -4,9 +4,9 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { IoDocumentText, IoSearch } from 'react-icons/io5'
 import { searchNotes } from '@/actions/note'
+import ResponsivePopover from '@/components/app/common/ResponsivePopover'
 import { buttonVariants } from '@/components/ui/button'
 import { Command, CommandEmpty, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Spinner } from '@/components/ui/spinner'
 import { getNotePreview } from '@/lib/format'
 import { searchDebounceMs } from '@/lib/src/constants'
@@ -45,45 +45,49 @@ export default function NoteSearchBar() {
     }, [trimmedQuery])
 
     return (
-        <Popover modal open={open} onOpenChange={setOpen}>
-            <PopoverTrigger className={buttonVariants({ variant: 'secondary' })}>
-                Not ara <IoSearch />
-            </PopoverTrigger>
-            <PopoverContent align='start' className='w-80 max-w-[calc(100vw-2rem)] p-0'>
-                <Command shouldFilter={false}>
-                    <CommandInput
-                        placeholder='Not içeriğinde ara...'
-                        value={query}
-                        onValueChange={handleQueryChange}
-                    />
-                    <CommandList>
-                        {isLoading && (
-                            <div className='flex justify-center py-6'>
-                                <Spinner />
+        // Desktop: popover, mobile: drawer from the bottom of the screen
+        <ResponsivePopover
+            modal
+            open={open}
+            onOpenChange={setOpen}
+            title='Not ara'
+            triggerClassName={buttonVariants({ variant: 'secondary' })}
+            trigger={<>Not ara <IoSearch /></>}
+            contentClassName='w-80 max-w-[calc(100vw-2rem)] p-0'
+        >
+            <Command shouldFilter={false}>
+                <CommandInput
+                    placeholder='Not içeriğinde ara...'
+                    value={query}
+                    onValueChange={handleQueryChange}
+                />
+                <CommandList>
+                    {isLoading && (
+                        <div className='flex justify-center py-6'>
+                            <Spinner />
+                        </div>
+                    )}
+                    {!isLoading && trimmedQuery && (
+                        <CommandEmpty>Not bulunamadı</CommandEmpty>
+                    )}
+                    {!isLoading && trimmedQuery && notes.map((note) => (
+                        <CommandItem
+                            key={note.id}
+                            value={`/app/customers/${note.customerId}/notes/${note.id}/edit`}
+                            onSelect={handleSelect}
+                        >
+                            <IoDocumentText className='text-muted-foreground' />
+                            <div className='grid flex-1 leading-tight'>
+                                <span className='truncate'>{getNotePreview(note.content)}</span>
+                                <span className='truncate text-xs text-muted-foreground'>
+                                    {note.customer?.fullName}
+                                </span>
                             </div>
-                        )}
-                        {!isLoading && trimmedQuery && (
-                            <CommandEmpty>Not bulunamadı</CommandEmpty>
-                        )}
-                        {!isLoading && trimmedQuery && notes.map((note) => (
-                            <CommandItem
-                                key={note.id}
-                                value={`/app/customers/${note.customerId}/notes/${note.id}/edit`}
-                                onSelect={handleSelect}
-                            >
-                                <IoDocumentText className='text-muted-foreground' />
-                                <div className='grid flex-1 leading-tight'>
-                                    <span className='truncate'>{getNotePreview(note.content)}</span>
-                                    <span className='truncate text-xs text-muted-foreground'>
-                                        {note.customer?.fullName}
-                                    </span>
-                                </div>
-                            </CommandItem>
-                        ))}
-                    </CommandList>
-                </Command>
-            </PopoverContent>
-        </Popover>
+                        </CommandItem>
+                    ))}
+                </CommandList>
+            </Command>
+        </ResponsivePopover>
     )
 
     function handleQueryChange(value: string) {

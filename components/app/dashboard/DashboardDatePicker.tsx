@@ -5,9 +5,9 @@ import { usePathname } from 'next/navigation'
 import { tr } from 'react-day-picker/locale'
 import { IoCalendar, IoChevronDown } from 'react-icons/io5'
 import { useSearchQuery } from 'use-search-query'
+import ResponsivePopover from '@/components/app/common/ResponsivePopover'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Spinner } from '@/components/ui/spinner'
 import { formatDate } from '@/lib/format'
 import { getStartOfToday, parseDateParam, toDateParam } from '@/lib/period'
@@ -31,27 +31,33 @@ export default function DashboardDatePicker({
 
     return (
         <div className='flex flex-wrap items-center gap-2'>
-            <Popover open={open} onOpenChange={setOpen}>
-                <PopoverTrigger
-                    id='dashboard-date-trigger'
-                    className={buttonVariants({ variant: 'outline', size: 'sm' })}
-                    aria-label='Tarih seç'
-                >
-                    {isPending ? <Spinner /> : <IoCalendar />}
-                    {formatDate(selected)}
-                    <IoChevronDown />
-                </PopoverTrigger>
-                <PopoverContent align='start' className='w-auto p-0'>
-                    <Calendar
-                        mode='single'
-                        locale={tr}
-                        selected={selected}
-                        defaultMonth={selected}
-                        disabled={{ after: today }}
-                        onSelect={handleSelect}
-                    />
-                </PopoverContent>
-            </Popover>
+            {/* Desktop: popover, mobile: drawer from the bottom of the screen */}
+            <ResponsivePopover
+                open={open}
+                onOpenChange={setOpen}
+                title='Tarih seç'
+                triggerId='dashboard-date-trigger'
+                triggerLabel='Tarih seç'
+                triggerClassName={buttonVariants({ variant: 'outline', size: 'sm' })}
+                trigger={
+                    <>
+                        {isPending ? <Spinner /> : <IoCalendar />}
+                        {formatDate(selected)}
+                        <IoChevronDown />
+                    </>
+                }
+                contentClassName='w-auto p-0'
+            >
+                <Calendar
+                    className='mx-auto md:mx-0'
+                    mode='single'
+                    locale={tr}
+                    selected={selected}
+                    defaultMonth={selected}
+                    disabled={{ after: today }}
+                    onSelect={handleSelect}
+                />
+            </ResponsivePopover>
             {!isToday && (
                 <Button variant='ghost' size='sm' onClick={handleToday}>
                     Bugün

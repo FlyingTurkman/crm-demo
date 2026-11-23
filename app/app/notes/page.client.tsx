@@ -2,10 +2,12 @@
 
 import { useTransition } from 'react'
 import Link from 'next/link'
+import { IoAdd } from 'react-icons/io5'
 import { deleteNote } from '@/actions/note'
 import EditDeleteMenu from '@/components/app/common/EditDeleteMenu'
 import ListFilters from '@/components/app/common/ListFilters'
 import ListPagination from '@/components/app/common/ListPagination'
+import { buttonVariants } from '@/components/ui/button'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { formatDate, getNotePreview } from '@/lib/format'
 import { createdPeriodLabels, noteSortLabels, noteSorts, pageLimit } from '@/lib/src/constants'
@@ -41,11 +43,16 @@ export default function NotesPageClient({
 
     return (
         <div className='flex flex-col gap-4 p-4'>
-            <div>
-                <h1 className='text-2xl font-semibold'>Notlar</h1>
-                <p className='text-sm text-muted-foreground'>
-                    {total === 0 ? 'Gösterilecek not yok' : `${total} nottan ${firstIndex}-${lastIndex} arası gösteriliyor`}
-                </p>
+            <div className='flex flex-row items-center justify-between gap-2'>
+                <div className='min-w-0'>
+                    <h1 className='text-2xl font-semibold'>Notlar</h1>
+                    <p className='text-sm text-muted-foreground'>
+                        {total === 0 ? 'Gösterilecek not yok' : `${total} nottan ${firstIndex}-${lastIndex} arası gösteriliyor`}
+                    </p>
+                </div>
+                <Link href='/app/notes/add' className={cn(buttonVariants(), 'shrink-0')}>
+                    <IoAdd /> Yeni Not
+                </Link>
             </div>
 
             <ListFilters

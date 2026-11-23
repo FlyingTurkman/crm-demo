@@ -40,7 +40,7 @@ export default function ProfileForm({ user }: { user: UserDto }) {
                     <FieldGroup>
                         <div className='grid gap-4 sm:grid-cols-2'>
                             <Field data-invalid={Boolean(errors.name)}>
-                                <FieldLabel htmlFor='profile-name'>Ad *</FieldLabel>
+                                <FieldLabel htmlFor='profile-name' className='required'>Ad</FieldLabel>
                                 <Input
                                     id='profile-name'
                                     autoComplete='given-name'
@@ -58,7 +58,7 @@ export default function ProfileForm({ user }: { user: UserDto }) {
                                 <FieldError errors={[errors.name]} />
                             </Field>
                             <Field data-invalid={Boolean(errors.surname)}>
-                                <FieldLabel htmlFor='profile-surname'>Soyad *</FieldLabel>
+                                <FieldLabel htmlFor='profile-surname' className='required'>Soyad</FieldLabel>
                                 <Input
                                     id='profile-surname'
                                     autoComplete='family-name'

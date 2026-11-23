@@ -4,10 +4,10 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { IoSearch } from 'react-icons/io5'
 import { searchCustomers } from '@/actions/customer'
+import ResponsivePopover from '@/components/app/common/ResponsivePopover'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { buttonVariants } from '@/components/ui/button'
 import { Command, CommandEmpty, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Spinner } from '@/components/ui/spinner'
 import { searchDebounceMs } from '@/lib/src/constants'
 import type { Customer } from '@/types'
@@ -45,47 +45,51 @@ export default function CustomerSearchBar() {
     }, [trimmedQuery])
 
     return (
-        <Popover modal open={open} onOpenChange={setOpen}>
-            <PopoverTrigger className={buttonVariants({ variant: 'secondary' })}>
-                Müşteri ara <IoSearch />
-            </PopoverTrigger>
-            <PopoverContent align='start' className='w-80 max-w-[calc(100vw-2rem)] p-0'>
-                <Command shouldFilter={false}>
-                    <CommandInput
-                        placeholder='Ad, email veya telefon...'
-                        value={query}
-                        onValueChange={handleQueryChange}
-                    />
-                    <CommandList>
-                        {isLoading && (
-                            <div className='flex justify-center py-6'>
-                                <Spinner />
+        // Desktop: popover, mobile: drawer from the bottom of the screen
+        <ResponsivePopover
+            modal
+            open={open}
+            onOpenChange={setOpen}
+            title='Müşteri ara'
+            triggerClassName={buttonVariants({ variant: 'secondary' })}
+            trigger={<>Müşteri ara <IoSearch /></>}
+            contentClassName='w-80 max-w-[calc(100vw-2rem)] p-0'
+        >
+            <Command shouldFilter={false}>
+                <CommandInput
+                    placeholder='Ad, email veya telefon...'
+                    value={query}
+                    onValueChange={handleQueryChange}
+                />
+                <CommandList>
+                    {isLoading && (
+                        <div className='flex justify-center py-6'>
+                            <Spinner />
+                        </div>
+                    )}
+                    {!isLoading && trimmedQuery && (
+                        <CommandEmpty>Müşteri bulunamadı</CommandEmpty>
+                    )}
+                    {!isLoading && trimmedQuery && customers.map((customer) => (
+                        <CommandItem
+                            key={customer.id}
+                            value={customer.id}
+                            onSelect={handleSelect}
+                        >
+                            <Avatar size='sm'>
+                                <AvatarFallback>{getInitials(customer)}</AvatarFallback>
+                            </Avatar>
+                            <div className='grid flex-1 leading-tight'>
+                                <span className='truncate'>{customer.fullName}</span>
+                                <span className='truncate text-xs text-muted-foreground'>
+                                    {customer.email}{customer.phone ? ` · ${customer.phone}` : ''}
+                                </span>
                             </div>
-                        )}
-                        {!isLoading && trimmedQuery && (
-                            <CommandEmpty>Müşteri bulunamadı</CommandEmpty>
-                        )}
-                        {!isLoading && trimmedQuery && customers.map((customer) => (
-                            <CommandItem
-                                key={customer.id}
-                                value={customer.id}
-                                onSelect={handleSelect}
-                            >
-                                <Avatar size='sm'>
-                                    <AvatarFallback>{getInitials(customer)}</AvatarFallback>
-                                </Avatar>
-                                <div className='grid flex-1 leading-tight'>
-                                    <span className='truncate'>{customer.fullName}</span>
-                                    <span className='truncate text-xs text-muted-foreground'>
-                                        {customer.email}{customer.phone ? ` · ${customer.phone}` : ''}
-                                    </span>
-                                </div>
-                            </CommandItem>
-                        ))}
-                    </CommandList>
-                </Command>
-            </PopoverContent>
-        </Popover>
+                        </CommandItem>
+                    ))}
+                </CommandList>
+            </Command>
+        </ResponsivePopover>
     )
 
     function handleQueryChange(value: string) {

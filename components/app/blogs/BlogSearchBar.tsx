@@ -4,9 +4,9 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { IoNewspaper, IoSearch } from 'react-icons/io5'
 import { searchPosts } from '@/actions/post'
+import ResponsivePopover from '@/components/app/common/ResponsivePopover'
 import { buttonVariants } from '@/components/ui/button'
 import { Command, CommandEmpty, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Spinner } from '@/components/ui/spinner'
 import { searchDebounceMs } from '@/lib/src/constants'
 import type { Post } from '@/types'
@@ -44,45 +44,49 @@ export default function BlogSearchBar() {
     }, [trimmedQuery])
 
     return (
-        <Popover modal open={open} onOpenChange={setOpen}>
-            <PopoverTrigger className={buttonVariants({ variant: 'secondary' })}>
-                Blog ara <IoSearch />
-            </PopoverTrigger>
-            <PopoverContent align='start' className='w-80 max-w-[calc(100vw-2rem)] p-0'>
-                <Command shouldFilter={false}>
-                    <CommandInput
-                        placeholder='Başlık veya içerik...'
-                        value={query}
-                        onValueChange={handleQueryChange}
-                    />
-                    <CommandList>
-                        {isLoading && (
-                            <div className='flex justify-center py-6'>
-                                <Spinner />
+        // Desktop: popover, mobile: drawer from the bottom of the screen
+        <ResponsivePopover
+            modal
+            open={open}
+            onOpenChange={setOpen}
+            title='Blog ara'
+            triggerClassName={buttonVariants({ variant: 'secondary' })}
+            trigger={<>Blog ara <IoSearch /></>}
+            contentClassName='w-80 max-w-[calc(100vw-2rem)] p-0'
+        >
+            <Command shouldFilter={false}>
+                <CommandInput
+                    placeholder='Başlık veya içerik...'
+                    value={query}
+                    onValueChange={handleQueryChange}
+                />
+                <CommandList>
+                    {isLoading && (
+                        <div className='flex justify-center py-6'>
+                            <Spinner />
+                        </div>
+                    )}
+                    {!isLoading && trimmedQuery && (
+                        <CommandEmpty>Blog bulunamadı</CommandEmpty>
+                    )}
+                    {!isLoading && trimmedQuery && posts.map((post) => (
+                        <CommandItem
+                            key={post.id}
+                            value={`/app/customers/${post.customerId}/blogs/${post.id}`}
+                            onSelect={handleSelect}
+                        >
+                            <IoNewspaper className='text-muted-foreground' />
+                            <div className='grid flex-1 leading-tight'>
+                                <span className='truncate'>{post.title}</span>
+                                <span className='truncate text-xs text-muted-foreground'>
+                                    {post.customer?.fullName}
+                                </span>
                             </div>
-                        )}
-                        {!isLoading && trimmedQuery && (
-                            <CommandEmpty>Blog bulunamadı</CommandEmpty>
-                        )}
-                        {!isLoading && trimmedQuery && posts.map((post) => (
-                            <CommandItem
-                                key={post.id}
-                                value={`/app/customers/${post.customerId}/blogs/${post.id}`}
-                                onSelect={handleSelect}
-                            >
-                                <IoNewspaper className='text-muted-foreground' />
-                                <div className='grid flex-1 leading-tight'>
-                                    <span className='truncate'>{post.title}</span>
-                                    <span className='truncate text-xs text-muted-foreground'>
-                                        {post.customer?.fullName}
-                                    </span>
-                                </div>
-                            </CommandItem>
-                        ))}
-                    </CommandList>
-                </Command>
-            </PopoverContent>
-        </Popover>
+                        </CommandItem>
+                    ))}
+                </CommandList>
+            </Command>
+        </ResponsivePopover>
     )
 
     function handleQueryChange(value: string) {

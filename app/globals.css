@@ -138,3 +138,13 @@
     @apply font-sans;
   }
 }
+@layer components {
+  /* Required form fields: <FieldLabel className='required'>Ad</FieldLabel> shows "Ad *"
+     with the asterisk in the destructive (red) color. FieldLabel is a flex row with gap-2,
+     so the negative margin brings the asterisk closer to the text. */
+  .required::after {
+    content: '*';
+    margin-inline-start: -0.25rem;
+    color: var(--destructive);
+  }
+}

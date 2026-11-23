@@ -49,7 +49,7 @@ export default function ChangePasswordForm({
                     <fieldset disabled={isLocked}>
                         <FieldGroup>
                             <Field data-invalid={Boolean(errors.currentPassword)}>
-                                <FieldLabel htmlFor='current-password'>Mevcut şifre *</FieldLabel>
+                                <FieldLabel htmlFor='current-password' className='required'>Mevcut şifre</FieldLabel>
                                 <Input
                                     id='current-password'
                                     type='password'
@@ -63,7 +63,7 @@ export default function ChangePasswordForm({
                             </Field>
                             <div className='grid gap-4 sm:grid-cols-2'>
                                 <Field data-invalid={Boolean(errors.newPassword)}>
-                                    <FieldLabel htmlFor='new-password'>Yeni şifre *</FieldLabel>
+                                    <FieldLabel htmlFor='new-password' className='required'>Yeni şifre</FieldLabel>
                                     <Input
                                         id='new-password'
                                         type='password'
@@ -87,7 +87,7 @@ export default function ChangePasswordForm({
                                     <FieldError errors={[errors.newPassword]} />
                                 </Field>
                                 <Field data-invalid={Boolean(errors.newPasswordConfirm)}>
-                                    <FieldLabel htmlFor='new-password-confirm'>Yeni şifre (tekrar) *</FieldLabel>
+                                    <FieldLabel htmlFor='new-password-confirm' className='required'>Yeni şifre (tekrar)</FieldLabel>
                                     <Input
                                         id='new-password-confirm'
                                         type='password'

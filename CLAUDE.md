@@ -202,6 +202,7 @@ export default function AppPageClient() {
   toast.success(result.message ?? 'Giriş yapıldı')
   ```
 - Field-level validation errors from `react-hook-form` stay inline under the field (`FieldError`), not in a toast.
+- **Required fields** are marked with the global `required` class on the label (`<FieldLabel className='required'>Ad</FieldLabel>`, defined in `app/globals.css`), which adds a red (`--destructive`) asterisk. Never type ` *` into label text.
 - **Page loading uses shadcn's `Skeleton`** (through the `loading.tsx` files above), shaped like the page that is coming.
 - **Loading animations inside a page (buttons, search results, ...) use shadcn's `Spinner`** (`@/components/ui/spinner`) — never a custom spinner or a text-only loading state. In buttons, show it before the label and disable the button while loading:
 
@@ -211,8 +212,9 @@ export default function AppPageClient() {
       {isSubmitting ? 'Giriş yapılıyor...' : 'Giriş Yap'}
   </Button>
   ```
-- **Every search bar is a `Popover` + `Command`** (reference: `components/app/customers/CustomerSearchBar.tsx`):
-  - `PopoverTrigger` styled with `buttonVariants({ variant: 'secondary' })`, label + `IoSearch` icon; `Popover` is `modal`.
+- **Every panel that opens from a button (search bars, the customer picker, date pickers) goes through `ResponsivePopover`** (`components/app/common/ResponsivePopover.tsx`): a `Popover` on desktop, a bottom sheet (shadcn `Drawer`) on mobile that sits above the on-screen keyboard. Give it a `title` (the drawer's heading). Never use `Popover` directly in our components.
+- **Every search bar is a `ResponsivePopover` + `Command`** (reference: `components/app/customers/CustomerSearchBar.tsx`; `CustomerPicker` is the form-field version that picks a customer instead of navigating):
+  - Trigger styled with `buttonVariants({ variant: 'secondary' })` (`triggerClassName`), label + `IoSearch` icon; `modal` on desktop.
   - Inside `PopoverContent`: `<Command shouldFilter={false}>` (filtering is done on the server), `CommandInput`, results as `CommandItem`s in `CommandList`, `CommandEmpty` when nothing matches, `Spinner` while loading.
   - Searching is **debounced** with `searchDebounceMs` from `constants.ts` (`setTimeout` in `useEffect`, cleared in the cleanup, stale responses ignored) and runs through a Server Action validated with zod (`maxSearchLength`, results limited by `searchResultLimit`).
 

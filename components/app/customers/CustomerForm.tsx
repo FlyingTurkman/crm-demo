@@ -50,7 +50,7 @@ export default function CustomerForm({ customer }: { customer?: Customer }) {
                     <FieldGroup>
                         <div className='grid gap-4 sm:grid-cols-2'>
                             <Field data-invalid={Boolean(errors.name)}>
-                                <FieldLabel htmlFor='name'>Ad *</FieldLabel>
+                                <FieldLabel htmlFor='name' className='required'>Ad</FieldLabel>
                                 <Input
                                     id='name'
                                     aria-invalid={Boolean(errors.name)}
@@ -66,7 +66,7 @@ export default function CustomerForm({ customer }: { customer?: Customer }) {
                             </Field>
 
                             <Field data-invalid={Boolean(errors.surname)}>
-                                <FieldLabel htmlFor='surname'>Soyad *</FieldLabel>
+                                <FieldLabel htmlFor='surname' className='required'>Soyad</FieldLabel>
                                 <Input
                                     id='surname'
                                     aria-invalid={Boolean(errors.surname)}
@@ -83,7 +83,7 @@ export default function CustomerForm({ customer }: { customer?: Customer }) {
                         </div>
 
                         <Field data-invalid={Boolean(errors.email)}>
-                            <FieldLabel htmlFor='email'>Email *</FieldLabel>
+                            <FieldLabel htmlFor='email' className='required'>Email</FieldLabel>
                             <Input
                                 id='email'
                                 type='email'

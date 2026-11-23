@@ -3,9 +3,11 @@
 import { useTransition } from 'react'
 import Link from 'next/link'
 import type { PostStatus } from '@prisma/client'
+import { IoAdd } from 'react-icons/io5'
 import ListFilters from '@/components/app/common/ListFilters'
 import ListPagination from '@/components/app/common/ListPagination'
 import PostStatusSelect from '@/components/app/posts/PostStatusSelect'
+import { buttonVariants } from '@/components/ui/button'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { formatDate } from '@/lib/format'
 import { createdPeriodLabels, pageLimit, postSortLabels, postSorts, postStatusLabels } from '@/lib/src/constants'
@@ -48,11 +50,16 @@ export default function BlogsPageClient({
 
     return (
         <div className='flex flex-col gap-4 p-4'>
-            <div>
-                <h1 className='text-2xl font-semibold'>Bloglar</h1>
-                <p className='text-sm text-muted-foreground'>
-                    {total === 0 ? 'Gösterilecek blog yok' : `${total} blogdan ${firstIndex}-${lastIndex} arası gösteriliyor`}
-                </p>
+            <div className='flex flex-row items-center justify-between gap-2'>
+                <div className='min-w-0'>
+                    <h1 className='text-2xl font-semibold'>Bloglar</h1>
+                    <p className='text-sm text-muted-foreground'>
+                        {total === 0 ? 'Gösterilecek blog yok' : `${total} blogdan ${firstIndex}-${lastIndex} arası gösteriliyor`}
+                    </p>
+                </div>
+                <Link href='/app/blogs/add' className={cn(buttonVariants(), 'shrink-0')}>
+                    <IoAdd /> Yeni Blog
+                </Link>
             </div>
 
             <ListFilters

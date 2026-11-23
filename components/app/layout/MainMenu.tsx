@@ -92,7 +92,8 @@ export default function MainMenu() {
                     </SheetContent>
                 </Sheet>
 
-                <span className='font-semibold md:hidden'>CRM</span>
+                {/* Mobile: the app name leads to the dashboard */}
+                <Link href='/app' className='font-semibold md:hidden'>CRM</Link>
 
                 {/* Desktop: links in a row */}
                 <nav className='hidden flex-row items-center gap-1 md:flex lg:gap-2'>

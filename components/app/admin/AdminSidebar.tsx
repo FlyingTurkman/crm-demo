@@ -77,7 +77,8 @@ export default function AdminSidebar({ users }: { users: ManagedUserDto[] }) {
                                         <Avatar size='sm'>
                                             <AvatarFallback>{getInitials(user)}</AvatarFallback>
                                         </Avatar>
-                                        <div className='grid flex-1 leading-tight'>
+                                        {/* Collapsed (icon) sidebar: only the icon / avatar stays, the text would squeeze into one letter per line */}
+                                        <div className='grid flex-1 leading-tight group-data-[collapsible=icon]:hidden'>
                                             <span className='truncate'>{user.fullName}</span>
                                             <span className='truncate text-xs text-muted-foreground'>
                                                 {userRoleLabels[user.role]}

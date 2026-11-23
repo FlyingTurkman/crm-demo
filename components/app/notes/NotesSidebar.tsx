@@ -2,7 +2,8 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { IoDocumentText, IoDocuments, IoList } from 'react-icons/io5'
+import { IoAdd, IoDocumentText, IoDocuments, IoList } from 'react-icons/io5'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import {
     Sidebar,
     SidebarContent,
@@ -16,10 +17,11 @@ import {
     SidebarRail,
 } from '@/components/ui/sidebar'
 import { getNotePreview } from '@/lib/format'
-import type { Note } from '@/types'
+import type { Customer, Note } from '@/types'
 
 const sidebarItems = [
     { href: '/app/notes', label: 'Not Listesi', icon: IoList },
+    { href: '/app/notes/add', label: 'Yeni Not', icon: IoAdd },
 ]
 
 export default function NotesSidebar({ notes }: { notes: Note[] }) {
@@ -76,8 +78,13 @@ export default function NotesSidebar({ notes }: { notes: Note[] }) {
                                         tooltip={getNotePreview(note.content)}
                                         render={<Link href={`/app/customers/${note.customerId}/notes/${note.id}/edit`} />}
                                     >
-                                        <IoDocumentText />
-                                        <div className='grid flex-1 leading-tight'>
+                                        <IoDocumentText className='group-data-[collapsible=icon]:hidden' />
+                                        {/* Collapsed (icon) sidebar: the customer's avatar replaces the icon and the text,
+                                            which would otherwise squeeze into one letter per line */}
+                                        <Avatar size='sm' className='hidden group-data-[collapsible=icon]:flex'>
+                                            <AvatarFallback>{getInitials(note.customer)}</AvatarFallback>
+                                        </Avatar>
+                                        <div className='grid flex-1 leading-tight group-data-[collapsible=icon]:hidden'>
                                             <span className='truncate'>{getNotePreview(note.content)}</span>
                                             <span className='truncate text-xs text-muted-foreground'>
                                                 {note.customer?.fullName}
@@ -93,4 +100,11 @@ export default function NotesSidebar({ notes }: { notes: Note[] }) {
             <SidebarRail />
         </Sidebar>
     )
+
+    function getInitials(customer: Customer | undefined) {
+        if (!customer) {
+            return '?'
+        }
+        return `${customer.name.charAt(0)}${customer.surname.charAt(0)}`.toLocaleUpperCase('tr-TR')
+    }
 }

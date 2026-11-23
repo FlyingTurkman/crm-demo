@@ -78,7 +78,10 @@ function getPageSkeleton(segments: string[]): ReactNode {
         }
     }
 
-    // Section pages: list, add, edit (<id>/edit)
+    // Section pages: list, add, edit (<id>/edit). Blogs and notes are added with the rich text editor.
+    if ((section === 'blogs' || section === 'notes') && first === 'add') {
+        return <FormSkeleton editor className='p-4' />
+    }
     if (first) {
         return <FormSkeleton className='p-4' />
     }

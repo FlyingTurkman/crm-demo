@@ -74,7 +74,7 @@ export default function UserForm({ user }: { user?: ManagedUserDto }) {
                     <FieldGroup>
                         <div className='grid gap-4 sm:grid-cols-2'>
                             <Field data-invalid={Boolean(errors.name)}>
-                                <FieldLabel htmlFor='name'>Ad *</FieldLabel>
+                                <FieldLabel htmlFor='name' className='required'>Ad</FieldLabel>
                                 <Input
                                     id='name'
                                     aria-invalid={Boolean(errors.name)}
@@ -90,7 +90,7 @@ export default function UserForm({ user }: { user?: ManagedUserDto }) {
                             </Field>
 
                             <Field data-invalid={Boolean(errors.surname)}>
-                                <FieldLabel htmlFor='surname'>Soyad *</FieldLabel>
+                                <FieldLabel htmlFor='surname' className='required'>Soyad</FieldLabel>
                                 <Input
                                     id='surname'
                                     aria-invalid={Boolean(errors.surname)}
@@ -108,7 +108,7 @@ export default function UserForm({ user }: { user?: ManagedUserDto }) {
 
                         <div className='grid gap-4 sm:grid-cols-[1fr_12rem]'>
                             <Field data-invalid={Boolean(errors.email)}>
-                                <FieldLabel htmlFor='email'>Email *</FieldLabel>
+                                <FieldLabel htmlFor='email' className='required'>Email</FieldLabel>
                                 <Input
                                     id='email'
                                     type='email'
@@ -160,7 +160,7 @@ export default function UserForm({ user }: { user?: ManagedUserDto }) {
 
                         <div className='grid gap-4 sm:grid-cols-2'>
                             <Field data-invalid={Boolean(errors.password)}>
-                                <FieldLabel htmlFor='password'>{user ? 'Yeni şifre' : 'Şifre *'}</FieldLabel>
+                                <FieldLabel htmlFor='password' className={user ? undefined : 'required'}>{user ? 'Yeni şifre' : 'Şifre'}</FieldLabel>
                                 <Input
                                     id='password'
                                     type='password'
@@ -174,7 +174,7 @@ export default function UserForm({ user }: { user?: ManagedUserDto }) {
                             </Field>
 
                             <Field data-invalid={Boolean(errors.passwordConfirm)}>
-                                <FieldLabel htmlFor='passwordConfirm'>{user ? 'Yeni şifre (tekrar)' : 'Şifre (tekrar) *'}</FieldLabel>
+                                <FieldLabel htmlFor='passwordConfirm' className={user ? undefined : 'required'}>{user ? 'Yeni şifre (tekrar)' : 'Şifre (tekrar)'}</FieldLabel>
                                 <Input
                                     id='passwordConfirm'
                                     type='password'

@@ -53,13 +53,13 @@ export default function CustomersPageClient({
     return (
         <div className='flex flex-col gap-4 p-4'>
             <div className='flex flex-row items-center justify-between gap-2'>
-                <div>
+                <div className='min-w-0'>
                     <h1 className='text-2xl font-semibold'>Müşteriler</h1>
                     <p className='text-sm text-muted-foreground'>
                         {total === 0 ? 'Gösterilecek müşteri yok' : `${total} müşteriden ${firstIndex}-${lastIndex} arası gösteriliyor`}
                     </p>
                 </div>
-                <Link href='/app/customers/add' className={buttonVariants()}>
+                <Link href='/app/customers/add' className={cn(buttonVariants(), 'shrink-0')}>
                     <IoPersonAdd /> Yeni Müşteri
                 </Link>
             </div>
