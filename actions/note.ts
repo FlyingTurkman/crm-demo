@@ -8,7 +8,7 @@ import { paginate } from '@/lib/pagination'
 import { authorize } from '@/lib/auth/authorize'
 import { sanitizeRichTextHtml } from '@/lib/richText'
 import { getPeriodWhere, type CreatedPeriod } from '@/lib/period'
-import { escapeRegex } from '@/lib/search'
+import { getSearchWhere } from '@/lib/search'
 import {
     createdPeriods,
     maxNoteContentLength,
@@ -76,14 +76,13 @@ const noteOrderBy: Record<NoteSort, Prisma.NoteOrderByWithRelationInput> = {
 }
 
 function getNoteListWhere(query: string | undefined, period?: CreatedPeriod): Prisma.NoteWhereInput {
-    const search = query ? escapeRegex(query) : ''
-
     return {
         isDeleted: false,
         customer: { isDeleted: false },
         ...getPeriodWhere(period),
         // Searches the plain text version, so styling doesn't get in the way
-        ...(search ? { content: { contains: search, mode: 'insensitive' } } : {}),
+        // (Turkish-insensitive, see lib/src/searchText.ts)
+        ...getSearchWhere(query),
     }
 }
 

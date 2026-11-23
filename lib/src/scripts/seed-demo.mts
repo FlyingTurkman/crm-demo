@@ -9,8 +9,10 @@ import { createHash } from 'node:crypto'
 import { PrismaClient, type PostStatus } from '@prisma/client'
 import argon2 from 'argon2'
 import { demoAccounts } from '../constants.ts'
+import { backfillSearchText, searchTextExtension } from '../searchText.ts'
 
-const prisma = new PrismaClient()
+// The extension fills searchText of every created record, like the app's client does
+const prisma = new PrismaClient().$extends(searchTextExtension)
 const confirmed = process.argv.includes('--yes')
 
 const customerCount = 60
@@ -417,6 +419,9 @@ async function main() {
     })
     await prisma.post.createMany({ data: posts })
     await prisma.note.createMany({ data: notes })
+
+    // Kept demo users may predate the searchText field
+    await backfillSearchText(prisma as unknown as PrismaClient)
 
     console.log(`Oluşturuldu: ${customers.length} müşteri, ${posts.length} blog, ${notes.length} not`)
 }

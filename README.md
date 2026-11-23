@@ -294,6 +294,8 @@ flowchart LR
 
 ### Arama, filtre ve sayfalama
 
+- **Türkçe karakterlere duyarsız arama:** `ŞAHİN` ile `sahin`, `IŞIK` ile `isik`, `GÜNEŞ` ile `gunes` aynı sonuçları bulur. Müşteri, blog, not ve kullanıcılar aranabilir alanlarının sadeleştirilmiş bir kopyasını `searchText` alanında tutar; aranan metin de aynı şekilde sadeleştirilir (`lib/src/searchText.ts`). Bu alanı bir Prisma eklentisi her kayıt oluşturma ve güncellemede kendisi yeniden hesaplar, bu yüzden eskimez. Alan API yanıtlarında ve arayüzde görünmez.
+
 - **Liste filtreleri URL'de tutulur**, örneğin `/app/blogs?q=seo&status=published&period=week&sort=title&page=2`. Linkler paylaşılabilir; geri tuşu ve sayfa yenileme filtreleri korur. URL'yi [use-search-query](https://github.com/FlyingTurkman/use-search-query) günceller.
 - **Ortak bileşenler:**
   - `ListFilters`: arama kutusu ve açılır filtreler
@@ -378,6 +380,7 @@ DATABASE_URL="mongodb+srv://USER:PASSWORD@CLUSTER.mongodb.net/crm-demo"
 | `npm run db:studio` | Prisma Studio (veritabanını tarayıcıda görüntüleme) |
 | `npm run user:create` | Terminalden admin veya moderatör kullanıcı oluşturur, API token'ını bir kez gösterir |
 | `npm run db:seed -- --yes` | Demo verisi oluşturur: müşteri, blog ve notları **silip** yeniden üretir (son 90 güne yayılmış, birkaçı bugün), sadece demo hesaplarını bırakır. `--yes` olmadan sadece ne yapacağını yazar |
+| `npm run db:search-text` | Bütün kayıtların arama alanını (`searchText`) doldurur / onarır. Eski bir yedek geri yüklendiğinde ya da arama kuralı değiştiğinde gerekir; `db:restore` ve `db:seed` bunu kendisi çalıştırır |
 | `npm run db:backup` | Bütün koleksiyonları `backups/<tarih>/` altına JSON (Extended JSON) olarak yedekler |
 | `npm run db:restore -- backups/<tarih>` | Yedeği `DATABASE_URL`'deki veritabanına yükler; sadece boş koleksiyonları doldurur |
 | `npm run api:tokens` | Token'ı olmayan kullanıcılara API token'ı verir, demo hesaplara sabit token'larını yazar (`--force` ile demo dışındakileri yeniler) |
@@ -394,10 +397,3 @@ DATABASE_URL="mongodb+srv://USER:PASSWORD@CLUSTER.mongodb.net/crm-demo"
 - **Giriş hataları:** Bilinmeyen email ve yanlış şifre için aynı mesaj döner, böylece kayıtlı email'ler tahmin edilemez.
 - **Gizli bilgiler:** `.env` repoya eklenmez; sadece `.env.example` var.
 
-## Bilinen kısıtlar
-
-- **Demo hesapları herkese açık.** Uygulama yayındaysa giriş sayfasındaki bilgilerle herkes admin olarak girebilir, demo API token'larıyla API'yi kullanabilir. Gerçek kullanımda bu hesaplar silinmeli ya da şifreleri ve token'ları değiştirilmelidir (`lib/src/constants.ts` → `demoAccounts`).
-- **API'de istek sınırı (rate limit) yok.** Yayına alınacaksa önüne bir rate limit katmanı eklenmeli.
-- **Email'ler benzersiz.** Soft delete edilmiş bir müşteri ya da kullanıcının email'i veritabanında kaldığı için aynı email ile yeniden kayıt açılamaz.
-- **"Bugün" filtresi sunucunun saat dilimine göre hesaplanır.** Sunucu UTC'de çalışıyorsa Türkiye saatiyle 3 saat kayar.
-- **Büyük/küçük harf duyarsız arama Türkçe `ı/i` dönüşümünü yapmaz.** "yilmaz" araması "Yılmaz"ı ad alanında bulmaz.

@@ -9,7 +9,7 @@ import { authorize } from '@/lib/auth/authorize'
 import { issueApiToken } from '@/lib/auth/apiToken'
 import { hashPassword } from '@/lib/auth/password'
 import { getPeriodWhere } from '@/lib/period'
-import { escapeRegex } from '@/lib/search'
+import { getSearchWhere } from '@/lib/search'
 import { ManagedUserDto } from '@/dtos/userDTO'
 import {
     createdPeriods,
@@ -130,17 +130,9 @@ const userOrderBy: Record<UserSort, Prisma.UserOrderByWithRelationInput> = {
     name: { fullName: 'asc' },
 }
 
+// Name and email (Turkish-insensitive, see lib/src/searchText.ts)
 function getUserSearchWhere(query: string | undefined): Prisma.UserWhereInput {
-    const search = query ? escapeRegex(query) : ''
-    if (!search) {
-        return {}
-    }
-    return {
-        OR: [
-            { fullName: { contains: search, mode: 'insensitive' } },
-            { email: { contains: search, mode: 'insensitive' } },
-        ],
-    }
+    return getSearchWhere(query)
 }
 
 // Class instances can't cross to client components: spread the censored DTO

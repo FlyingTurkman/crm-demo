@@ -18,6 +18,8 @@ model Customer {
   company   String?
   notes     Note[]
   posts     Post[]
+  // Normalized copy of the searchable fields, maintained by lib/src/searchText.ts (never written by hand)
+  searchText String?
   isDeleted Boolean  @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -31,6 +33,8 @@ model Note {
   rawContent String // HTML output of the editor (serializeToHtml)
   customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
   customerId String   @db.ObjectId
+  // Normalized copy of the searchable fields, maintained by lib/src/searchText.ts (never written by hand)
+  searchText String?
   isDeleted  Boolean  @default(false)
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
@@ -53,6 +57,8 @@ model Post {
   status     PostStatus @default(draft)
   customer   Customer   @relation(fields: [customerId], references: [id], onDelete: Cascade)
   customerId String     @db.ObjectId
+  // Normalized copy of the searchable fields, maintained by lib/src/searchText.ts (never written by hand)
+  searchText String?
   isDeleted  Boolean    @default(false)
   createdAt  DateTime   @default(now())
   updatedAt  DateTime   @updatedAt
@@ -77,6 +83,8 @@ model User {
   role      UserRole  @default(moderator)
   sessions  Session[]
   apiTokens ApiToken[]
+  // Normalized copy of the searchable fields, maintained by lib/src/searchText.ts (never written by hand)
+  searchText String?
   isDeleted Boolean   @default(false)
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt

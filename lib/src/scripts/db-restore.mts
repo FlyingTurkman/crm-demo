@@ -6,6 +6,7 @@
 import { readFileSync, readdirSync } from 'node:fs'
 import { basename, join } from 'node:path'
 import { PrismaClient } from '@prisma/client'
+import { backfillSearchText } from '../searchText.ts'
 
 const prisma = new PrismaClient()
 const chunkSize = 500
@@ -45,6 +46,10 @@ async function main() {
         }
         console.log(`${name}: ${documents.length} kayıt yüklendi`)
     }
+
+    // Backups made before the searchText field existed (or with an older normalization)
+    const fixed = await backfillSearchText(prisma)
+    console.log(`Arama alanı güncellenen kayıt: ${fixed}`)
 
     console.log('Geri yükleme bitti. Index\'ler için şimdi `npm run db:push` çalıştırın.')
 }

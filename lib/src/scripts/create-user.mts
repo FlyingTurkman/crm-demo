@@ -4,8 +4,10 @@ import { createInterface } from 'node:readline/promises'
 import { PrismaClient } from '@prisma/client'
 import argon2 from 'argon2'
 import { apiTokenPrefix, maxPasswordLength, minPasswordLength } from '../constants.ts'
+import { searchTextExtension } from '../searchText.ts'
 
-const prisma = new PrismaClient()
+// The extension fills the user's searchText, like the app's client does
+const prisma = new PrismaClient().$extends(searchTextExtension)
 
 async function main() {
     const rl = createInterface({ input: process.stdin })

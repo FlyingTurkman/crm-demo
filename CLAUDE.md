@@ -8,6 +8,10 @@
 ## Database rules
 - **Every model must have an `isDeleted Boolean @default(false)` field.** Add it to any new model.
 - **Soft delete only:** never call `delete` / `deleteMany` on records. To delete, set `isDeleted: true` with `update` / `updateMany`.
+- **Text search uses `searchText`** (Turkish-insensitive: `ŞAHİN` = `sahin`, `IŞIK` = `isik`). `Customer`, `Post`, `Note` and `User` store a normalized copy of their searchable fields in `searchText`; search with `getSearchWhere(query)` from `lib/search.ts`, never with `contains` + `mode: 'insensitive'` on the original fields.
+  - The field is maintained **only** by the Prisma extension `searchTextExtension` (`lib/src/searchText.ts`, applied in `lib/prisma.ts` and the CLI scripts): every `create` / `createMany` / `update` / `upsert` rebuilds it, a partial update reads the record back first. Never write `searchText` by hand; `updateMany` that touches a searchable field throws (use `update`).
+  - A new searchable field or model: add it to `searchFields` in `lib/src/searchText.ts`, add `searchText String?` to the model, omit it in `lib/prisma.ts`, then run `npm run db:search-text`.
+  - `searchText` is omitted from every query (global `omit` in `lib/prisma.ts`) and left out of the app types (`Omit<CustomerDB, 'searchText'>`), so it never reaches clients or the API.
 - **Every read query must filter `isDeleted: false`** (`findMany`, `findFirst`, `count`, relation includes / `_count`, etc.) unless deleted records are explicitly needed.
 - When soft-deleting a parent (e.g. `Customer`), also soft-delete its children (e.g. its `Note`s and `Post`s).
 - Enum values are camelCase (e.g. `draft`, `inReview`, `published`), not UPPER_CASE.
@@ -319,5 +323,6 @@ export default function AppPageClient() {
 - `npm run db:studio` — Prisma Studio
 - `npm run user:create` — create a login user (admin / moderator) interactively, prints its API token once
 - `npm run db:seed -- --yes` — reset to demo data: replaces customers / blogs / notes with generated ones and keeps only the demo accounts (hard-deletes: a setup tool, not app code)
+- `npm run db:search-text` — fill / repair `searchText` of every record (after adding the field, restoring an old backup or changing `normalizeSearchText`); only outdated records are written, `updatedAt` isn't touched. `db:restore` and `db:seed` run it too
 - `npm run db:backup` / `npm run db:restore -- backups/<date>` — JSON (Extended JSON) backup of every collection / restore into empty collections (`backups/` is git-ignored: it has password and token hashes)
 - `npm run api:tokens` — give users without an API token a new one, write the demo accounts' fixed tokens (`--force` regenerates non-demo tokens)

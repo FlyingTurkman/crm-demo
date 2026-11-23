@@ -14,7 +14,8 @@
     "api:tokens": "node --env-file=.env --disable-warning=MODULE_TYPELESS_PACKAGE_JSON lib/src/scripts/api-tokens.mts",
     "db:backup": "node --env-file=.env --disable-warning=MODULE_TYPELESS_PACKAGE_JSON lib/src/scripts/db-backup.mts",
     "db:restore": "node --env-file=.env --disable-warning=MODULE_TYPELESS_PACKAGE_JSON lib/src/scripts/db-restore.mts",
-    "db:seed": "node --env-file=.env --disable-warning=MODULE_TYPELESS_PACKAGE_JSON lib/src/scripts/seed-demo.mts"
+    "db:seed": "node --env-file=.env --disable-warning=MODULE_TYPELESS_PACKAGE_JSON lib/src/scripts/seed-demo.mts",
+    "db:search-text": "node --env-file=.env --disable-warning=MODULE_TYPELESS_PACKAGE_JSON lib/src/scripts/search-text.mts"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",

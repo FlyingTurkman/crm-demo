@@ -7,7 +7,7 @@ import { prisma } from '@/lib/prisma'
 import { paginate } from '@/lib/pagination'
 import { authorize } from '@/lib/auth/authorize'
 import { getPeriodWhere } from '@/lib/period'
-import { escapeRegex } from '@/lib/search'
+import { getSearchWhere } from '@/lib/search'
 import {
     createdPeriods,
     customerSorts,
@@ -123,18 +123,10 @@ export async function getCustomers(input: z.input<typeof getCustomersSchema>): P
     }
 
     const { query, postStatus, period, sort, page } = parsed.data
-    const search = query ? escapeRegex(query) : ''
-
     const where: Prisma.CustomerWhereInput = {
         isDeleted: false,
-        ...(search ? {
-            OR: [
-                { fullName: { contains: search, mode: 'insensitive' } },
-                { email: { contains: search, mode: 'insensitive' } },
-                { phone: { contains: search } },
-                { company: { contains: search, mode: 'insensitive' } },
-            ],
-        } : {}),
+        // Name, email, phone and company (Turkish-insensitive, see lib/src/searchText.ts)
+        ...getSearchWhere(query),
         // Only customers that have at least one (not deleted) post in this status
         ...(postStatus ? { posts: { some: { status: postStatus, isDeleted: false } } } : {}),
         ...getPeriodWhere(period),
@@ -270,16 +262,10 @@ export async function searchCustomers(input: z.input<typeof searchCustomersSchem
         return { status: false, message: parsed.error.issues[0].message }
     }
 
-    const query = escapeRegex(parsed.data.query)
-
     const customers = await prisma.customer.findMany({
         where: {
             isDeleted: false,
-            OR: [
-                { fullName: { contains: query, mode: 'insensitive' } },
-                { email: { contains: query, mode: 'insensitive' } },
-                { phone: { contains: query } },
-            ],
+            ...getSearchWhere(parsed.data.query),
         },
         orderBy: { updatedAt: 'desc' },
         take: searchResultLimit,

@@ -141,7 +141,7 @@ export async function getDashboardStats(input: z.input<typeof getDashboardStatsS
             }),
             postCount: group.postCount,
         }))
-        .filter(function (item): item is { customer: Customer, postCount: number } {
+        .filter(function (item): item is typeof item & { customer: NonNullable<typeof item.customer> } {
             return Boolean(item.customer)
         })
 

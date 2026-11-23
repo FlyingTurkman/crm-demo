@@ -8,7 +8,7 @@ import { paginate } from '@/lib/pagination'
 import { authorize } from '@/lib/auth/authorize'
 import { sanitizeRichTextHtml } from '@/lib/richText'
 import { getPeriodWhere, type CreatedPeriod } from '@/lib/period'
-import { escapeRegex } from '@/lib/search'
+import { getSearchWhere } from '@/lib/search'
 import {
     createdPeriods,
     maxPostContentLength,
@@ -80,19 +80,13 @@ function getPostListWhere(
     status: PostStatus | undefined,
     period?: CreatedPeriod
 ): Prisma.PostWhereInput {
-    const search = query ? escapeRegex(query) : ''
-
     return {
         isDeleted: false,
         customer: { isDeleted: false },
         ...(status ? { status } : {}),
         ...getPeriodWhere(period),
-        ...(search ? {
-            OR: [
-                { title: { contains: search, mode: 'insensitive' } },
-                { content: { contains: search, mode: 'insensitive' } },
-            ],
-        } : {}),
+        // Title and plain text content (Turkish-insensitive, see lib/src/searchText.ts)
+        ...getSearchWhere(query),
     }
 }
 
@@ -256,16 +250,11 @@ export async function searchPosts(input: z.input<typeof searchPostsSchema>): Pro
         return { status: false, message: parsed.error.issues[0].message }
     }
 
-    const query = escapeRegex(parsed.data.query)
-
     const posts = await prisma.post.findMany({
         where: {
             isDeleted: false,
             customer: { isDeleted: false },
-            OR: [
-                { title: { contains: query, mode: 'insensitive' } },
-                { content: { contains: query, mode: 'insensitive' } },
-            ],
+            ...getSearchWhere(parsed.data.query),
         },
         orderBy: { updatedAt: 'desc' },
         take: searchResultLimit,
