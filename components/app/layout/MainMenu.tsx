@@ -17,6 +17,7 @@ import {
 } from 'react-icons/io5'
 import { logout } from '@/actions/auth'
 import { useSiteContext } from '@/components/app/context/SiteContext'
+import GlobalSearch from '@/components/app/layout/GlobalSearch'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Button, buttonVariants } from '@/components/ui/button'
 import {
@@ -32,7 +33,6 @@ import { Separator } from '@/components/ui/separator'
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
 import { hasPermission, type Permission } from '@/lib/auth/permissions'
 import { userRoleLabels } from '@/lib/src/constants'
-import { cn } from '@/lib/utils'
 
 // Items with a permission are only shown to users that have it (pages check it again)
 const menuItems: { href: string, label: string, icon: typeof IoHome, permission?: Permission }[] = [
@@ -101,9 +101,11 @@ export default function MainMenu() {
                         <Link
                             key={item.href}
                             href={item.href}
+                            aria-current={isActive(item.href) ? 'page' : undefined}
+                            // Active page: secondary (light) button on the primary bar, like in the mobile sheet
                             className={buttonVariants({
-                                variant: 'ghost',
-                                className: cn('items-center justify-center', isActive(item.href) && 'bg-primary-foreground/15'),
+                                variant: isActive(item.href) ? 'secondary' : 'ghost',
+                                className: 'items-center justify-center',
                             })}
                         >
                             <item.icon /> {item.label}
@@ -113,8 +115,13 @@ export default function MainMenu() {
 
                 {user && (
                     <>
+                        {/* Customers, blogs and notes at once (pushes the profile to the right) */}
+                        <div className='ml-auto'>
+                            <GlobalSearch />
+                        </div>
+
                         {/* Desktop: profile dropdown (wrapper div, the trigger's own classes would override 'hidden') */}
-                        <div className='ml-auto hidden md:block'>
+                        <div className='hidden md:block'>
                             <DropdownMenu>
                                 <DropdownMenuTrigger
                                     id='main-menu-profile-trigger'
@@ -153,7 +160,7 @@ export default function MainMenu() {
                         <Sheet open={isUserOpen} onOpenChange={setIsUserOpen}>
                             <SheetTrigger
                                 id='main-menu-user-trigger'
-                                className={buttonVariants({ variant: 'ghost', size: 'icon', className: 'ml-auto md:hidden' })}
+                                className={buttonVariants({ variant: 'ghost', size: 'icon', className: 'md:hidden' })}
                                 aria-label='Profil menüsünü aç'
                             >
                                 <Avatar size='sm'>

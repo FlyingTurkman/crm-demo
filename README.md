@@ -2,6 +2,11 @@
 
 Müşterileri ve müşterilere bağlı içerikleri (blog yazıları ve notlar) yönetmek için hazırlanmış bir CRM paneli. Next.js 16 (App Router), React 19, MongoDB (Prisma) ve shadcn/ui ile yazıldı.
 
+Projede, benim geliştirdiğim iki açık kaynak proje de kullanılıyor:
+
+- [**use-search-query**](https://github.com/FlyingTurkman/use-search-query): Liste filtrelerini, aramayı ve sayfa numarasını URL'de tutan React hook'u (npm paketi).
+- [**RTE (rich-text-editor)**](https://github.com/FlyingTurkman/rich-text-editor): Blog ve notlarda kullanılan, shadcn registry'si üzerinden kurulan zengin metin editörü.
+
 **Ne yapılabiliyor?**
 
 - Müşteri ekleme, listeleme, düzenleme, silme

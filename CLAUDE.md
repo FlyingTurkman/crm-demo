@@ -217,7 +217,7 @@ export default function AppPageClient() {
   </Button>
   ```
 - **Every panel that opens from a button (search bars, the customer picker, date pickers) goes through `ResponsivePopover`** (`components/app/common/ResponsivePopover.tsx`): a `Popover` on desktop, a bottom sheet (shadcn `Drawer`) on mobile that sits above the on-screen keyboard. Give it a `title` (the drawer's heading). Never use `Popover` directly in our components.
-- **Every search bar is a `ResponsivePopover` + `Command`** (reference: `components/app/customers/CustomerSearchBar.tsx`; `CustomerPicker` is the form-field version that picks a customer instead of navigating):
+- **Every search bar is a `ResponsivePopover` + `Command`** (reference: `components/app/customers/CustomerSearchBar.tsx`; `CustomerPicker` is the form-field version that picks a customer instead of navigating; `components/app/layout/GlobalSearch.tsx` in the main menu searches customers, blogs and notes at once through `searchAll` in `actions/search.ts`, grouped with `CommandGroup`, Ctrl+K opens it):
   - Trigger styled with `buttonVariants({ variant: 'secondary' })` (`triggerClassName`), label + `IoSearch` icon; `modal` on desktop.
   - Inside `PopoverContent`: `<Command shouldFilter={false}>` (filtering is done on the server), `CommandInput`, results as `CommandItem`s in `CommandList`, `CommandEmpty` when nothing matches, `Spinner` while loading.
   - Searching is **debounced** with `searchDebounceMs` from `constants.ts` (`setTimeout` in `useEffect`, cleared in the cleanup, stale responses ignored) and runs through a Server Action validated with zod (`maxSearchLength`, results limited by `searchResultLimit`).

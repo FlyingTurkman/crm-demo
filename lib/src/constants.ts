@@ -29,6 +29,8 @@ export const sidebarCustomerLimit = 20
 export const searchDebounceMs = 300
 export const maxSearchLength = 100
 export const searchResultLimit = 10
+// Menu search: results shown per category (customers, blogs, notes)
+export const globalSearchCategoryLimit = 5
 
 // Post status labels shown to users
 export const postStatusLabels = {
