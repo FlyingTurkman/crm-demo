@@ -7,7 +7,7 @@ export default function TopCustomersList({ items }: { items: { customer: Custome
 
     if (items.length === 0) {
         return (
-            <p className='py-8 text-center text-sm text-muted-foreground'>Henüz blog yok</p>
+            <p className='py-8 text-center text-sm text-muted-foreground'>Henüz içerik yok</p>
         )
     }
 

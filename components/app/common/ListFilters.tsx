@@ -77,7 +77,7 @@ export default function ListFilters({
     }, [query, pushedQuery, pathname, routeToSearchParams, startTransition])
 
     return (
-        <div className='flex flex-col gap-2 lg:flex-row lg:items-center'>
+        <div className='flex flex-col gap-2 lg:flex-row lg:flex-wrap lg:items-center'>
             <InputGroup className='lg:max-w-sm'>
                 <InputGroupAddon>
                     {isPending ? <Spinner /> : <IoSearch />}

@@ -2,13 +2,16 @@
 // - Customers, blogs and notes are REPLACED with generated ones (spread over the last 90 days,
 //   a few added today so the dashboard has something to show).
 // - Users: only the demo accounts in constants.ts are kept (created if missing) with their
-//   password and fixed API token. Every other user, all sessions and other API tokens are removed.
+//   password. Every other user, all sessions and all API tokens are removed: demo visitors
+//   create their own API token on the profile page (tokens are never published).
+// - Posts get a type, channels that fit it, a publish time (half of the open ones in the next
+//   two weeks, for the agenda), a delivery day (some overdue) and one of the demo accounts as assignee.
 // This is a one-off setup / reset tool, so unlike the app it hard-deletes. Back up first
 // (npm run db:backup) if the data matters. Without --yes it only prints what it would do.
-import { createHash } from 'node:crypto'
-import { PrismaClient, type PostStatus } from '@prisma/client'
+import { createHash, randomBytes } from 'node:crypto'
+import { PrismaClient, type PostPlatform, type PostStatus, type PostType } from '@prisma/client'
 import argon2 from 'argon2'
-import { demoAccounts } from '../constants.ts'
+import { apiTokenPrefix, demoAccounts, demoTeamMembers } from '../constants.ts'
 import { backfillSearchText, searchTextExtension } from '../searchText.ts'
 
 // The extension fills searchText of every created record, like the app's client does
@@ -302,11 +305,18 @@ function generatePosts(customers: CustomerSeed[]) {
             const status: PostStatus = roll < 0.45 ? 'published' : roll < 0.65 ? 'inReview' : 'draft'
             const updatedAt = chance(0.4) ? dateBetween(createdAt, new Date()) : createdAt
             const lines = [pick(blogIntros), '', pick(blogBodies), pick(blogBodies), '', pick(blogOutros)]
+            const type = pick(postTypes)
             posts.push({
                 id: objectId(createdAt),
                 title: pick(blogTitles[customer.sector]),
                 ...richText(lines, false),
                 status,
+                type,
+                platforms: generatePlatforms(type),
+                dueDate: generateDueDate(createdAt, status),
+                scheduledAt: generateScheduledAt(createdAt, status),
+                assigneeId: null as string | null,
+                images: [],
                 customerId: customer.id,
                 createdAt,
                 updatedAt,
@@ -315,6 +325,60 @@ function generatePosts(customers: CustomerSeed[]) {
         }
     }
     return posts
+}
+
+const postTypes: PostType[] = ['socialMedia', 'socialMedia', 'blog', 'webPage', 'newsletter', 'other']
+
+// Channels that make sense for each type
+const typePlatforms: Record<PostType, PostPlatform[]> = {
+    socialMedia: ['instagram', 'tiktok', 'facebook', 'x', 'linkedin', 'youtube', 'pinterest'],
+    blog: ['website', 'linkedin'],
+    webPage: ['website'],
+    newsletter: ['email'],
+    other: ['youtube', 'website', 'other'],
+}
+
+// One to three channels of the type, the first one always (e.g. a social post is mostly for Instagram)
+function generatePlatforms(type: PostType) {
+    const options = typePlatforms[type]
+    const platforms = new Set<PostPlatform>([options[0]])
+    const extra = between(0, Math.min(2, options.length - 1))
+    for (let index = 0; index < extra; index++) {
+        platforms.add(pick(options))
+    }
+    return Array.from(platforms)
+}
+
+// Start of a day, `days` after the given date
+function dayAfter(date: Date, days: number) {
+    return new Date(date.getFullYear(), date.getMonth(), date.getDate() + days)
+}
+
+// Published posts were due around their creation; open ones are due from 10 days ago to
+// 3 weeks ahead, so some of them are overdue. A few posts have no delivery day.
+function generateDueDate(createdAt: Date, status: PostStatus) {
+    if (chance(0.1)) return null
+    if (status === 'published') return dayAfter(createdAt, between(2, 14))
+    const today = dayAfter(new Date(), 0)
+    return dayAfter(today, between(-10, 21))
+}
+
+// Publish time: published posts went live a few days after they were created; about half of the
+// open ones are planned in the next two weeks (working hours, on the half hour) for the agenda
+function generateScheduledAt(createdAt: Date, status: PostStatus) {
+    if (status === 'published') {
+        const day = dayAfter(createdAt, between(1, 7))
+        day.setHours(between(9, 17), pick([0, 30]))
+        return day > new Date() ? null : day
+    }
+    if (!chance(0.5)) return null
+    let day = dayAfter(new Date(), between(0, 13))
+    // Weekend → Monday
+    while (day.getDay() === 0 || day.getDay() === 6) {
+        day = dayAfter(day, 1)
+    }
+    day.setHours(between(9, 17), pick([0, 30]))
+    return day
 }
 
 function generateNotes(customers: CustomerSeed[]) {
@@ -338,15 +402,15 @@ function generateNotes(customers: CustomerSeed[]) {
 
 // ---------------------------------------------------------------- users
 
-function hashToken(token: string) {
-    return createHash('sha256').update(token).digest('hex')
-}
-
-// Keeps (or creates) the demo accounts with their password and fixed API token
+// Keeps (or creates) the demo accounts with their password and the demo team, returns their ids
 async function ensureDemoUsers() {
-    const demoEmails = demoAccounts.map((account) => account.email)
+    const userIds: string[] = []
+    const demoEmails = [
+        ...demoAccounts.map((account) => account.email),
+        ...demoTeamMembers.map((member) => member.email),
+    ]
 
-    // Everything that isn't a demo account goes: other users, all sessions, other API tokens
+    // Everything that isn't a demo account or team member goes: other users, all sessions, their API tokens
     await prisma.session.deleteMany({})
     const otherUsers = await prisma.user.findMany({
         where: { email: { notIn: demoEmails } },
@@ -373,16 +437,37 @@ async function ensureDemoUsers() {
             user = await prisma.user.update({ where: { id: user.id }, data: { isDeleted: false, role: account.role } })
         }
 
-        // Exactly one active token: the published demo token
-        await prisma.apiToken.deleteMany({ where: { userId: user.id, tokenHash: { not: hashToken(account.apiToken) } } })
-        const token = await prisma.apiToken.findFirst({ where: { userId: user.id } })
-        if (!token) {
-            await prisma.apiToken.create({ data: { userId: user.id, tokenHash: hashToken(account.apiToken) } })
-        } else if (token.isDeleted) {
-            await prisma.apiToken.update({ where: { id: token.id }, data: { isDeleted: false } })
-        }
-        console.log(`Kullanıcı: ${user.email} (${user.role}) · API token: ${account.apiToken}`)
+        // No published token: a visitor creates one on the profile page
+        await prisma.apiToken.deleteMany({ where: { userId: user.id } })
+        userIds.push(user.id)
+        console.log(`Kullanıcı: ${user.email} (${user.role})`)
     }
+
+    // Team members posts are assigned to: random password (never printed) and an API token like every user
+    for (const member of demoTeamMembers) {
+        let user = await prisma.user.findFirst({ where: { email: member.email } })
+        if (!user) {
+            user = await prisma.user.create({
+                data: {
+                    name: member.name,
+                    surname: member.surname,
+                    fullName: `${member.name} ${member.surname}`,
+                    email: member.email,
+                    role: 'moderator',
+                    password: await argon2.hash(randomBytes(32).toString('base64url'), { type: argon2.argon2id }),
+                },
+            })
+            const apiToken = `${apiTokenPrefix}${randomBytes(96).toString('base64url')}`
+            await prisma.apiToken.create({
+                data: { userId: user.id, tokenHash: createHash('sha256').update(apiToken).digest('hex') },
+            })
+        } else if (user.isDeleted) {
+            user = await prisma.user.update({ where: { id: user.id }, data: { isDeleted: false } })
+        }
+        userIds.push(user.id)
+        console.log(`Ekip: ${user.fullName}`)
+    }
+    return userIds
 }
 
 // ---------------------------------------------------------------- main
@@ -393,7 +478,7 @@ async function main() {
     const notes = generateNotes(customers)
 
     if (!confirmed) {
-        console.log('Bu komut müşteri, blog ve notları SİLİP yeniden oluşturur; demo hesapları dışındaki kullanıcıları ve bütün oturumları siler.')
+        console.log('Bu komut müşteri, blog ve notları SİLİP yeniden oluşturur; demo hesapları ve demo ekibi dışındaki kullanıcıları ve bütün oturumları siler.')
         console.log(`Oluşturulacak: ${customers.length} müşteri, ${posts.length} blog, ${notes.length} not`)
         console.log('Devam etmek için: npm run db:seed -- --yes')
         return
@@ -402,7 +487,11 @@ async function main() {
     await prisma.post.deleteMany({})
     await prisma.note.deleteMany({})
     await prisma.customer.deleteMany({})
-    await ensureDemoUsers()
+    const userIds = await ensureDemoUsers()
+    // Most posts have a responsible demo account, some are still unassigned
+    posts.forEach(function (post) {
+        post.assigneeId = chance(0.15) ? null : pick(userIds)
+    })
 
     await prisma.customer.createMany({
         data: customers.map((customer) => ({

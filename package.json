@@ -15,9 +15,15 @@
     "db:backup": "node --env-file=.env --disable-warning=MODULE_TYPELESS_PACKAGE_JSON lib/src/scripts/db-backup.mts",
     "db:restore": "node --env-file=.env --disable-warning=MODULE_TYPELESS_PACKAGE_JSON lib/src/scripts/db-restore.mts",
     "db:seed": "node --env-file=.env --disable-warning=MODULE_TYPELESS_PACKAGE_JSON lib/src/scripts/seed-demo.mts",
-    "db:search-text": "node --env-file=.env --disable-warning=MODULE_TYPELESS_PACKAGE_JSON lib/src/scripts/search-text.mts"
+    "db:search-text": "node --env-file=.env --disable-warning=MODULE_TYPELESS_PACKAGE_JSON lib/src/scripts/search-text.mts",
+    "db:posts-backfill": "node --env-file=.env --disable-warning=MODULE_TYPELESS_PACKAGE_JSON lib/src/scripts/posts-backfill.mts",
+    "db:schedule-demo": "node --env-file=.env --disable-warning=MODULE_TYPELESS_PACKAGE_JSON lib/src/scripts/posts-schedule-demo.mts",
+    "db:assign-demo": "node --env-file=.env --disable-warning=MODULE_TYPELESS_PACKAGE_JSON lib/src/scripts/posts-assign-demo.mts",
+    "db:team-demo": "node --env-file=.env --disable-warning=MODULE_TYPELESS_PACKAGE_JSON lib/src/scripts/team-demo.mts",
+    "db:platforms-demo": "node --env-file=.env --disable-warning=MODULE_TYPELESS_PACKAGE_JSON lib/src/scripts/posts-platforms-demo.mts"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1178.0",
     "@base-ui/react": "^1.9.0",
     "@prisma/client": "^6.19.3",
     "argon2": "^0.45.2",

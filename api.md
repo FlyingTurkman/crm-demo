@@ -1,6 +1,6 @@
 # CRM Demo REST API
 
-Müşterileri, blogları, notları ve sistem kullanıcılarını yönetmek için RESTful JSON API.
+Müşterileri, müşterilere bağlı içerikleri (sosyal medya, blog, web sayfası, ...), notları ve sistem kullanıcılarını yönetmek için RESTful JSON API.
 
 | | |
 |---|---|
@@ -22,13 +22,15 @@ Müşterileri, blogları, notları ve sistem kullanıcılarını yönetmek için
 - [Hesap](#hesap)
   - [`GET /me`](#get-me)
   - [`GET /dashboard`](#get-dashboard)
+  - [`GET /agenda`](#get-agenda)
 - [Müşteriler](#müşteriler)
   - [`GET /customers`](#get-customers)
   - [`POST /customers`](#post-customers)
   - [`GET /customers/{customerId}`](#get-customerscustomerid)
   - [`PATCH /customers/{customerId}`](#patch-customerscustomerid)
   - [`DELETE /customers/{customerId}`](#delete-customerscustomerid)
-- [Bloglar](#bloglar)
+- [İçerikler](#i̇çerikler)
+  - [`POST /images`](#post-images)
   - [`GET /customers/{customerId}/posts`](#get-customerscustomeridposts)
   - [`POST /customers/{customerId}/posts`](#post-customerscustomeridposts)
   - [`GET /posts`](#get-posts)
@@ -56,10 +58,10 @@ Müşterileri, blogları, notları ve sistem kullanıcılarını yönetmek için
 
 ## Hızlı başlangıç
 
-Aşağıdaki iki satır, demo admin token'ıyla müşteri listesinin ilk sayfasını getirir:
+Önce panele giriş yapıp **Profilim** sayfasından bir API token'ı oluşturun (token yalnızca bir kez gösterilir). Aşağıdaki satırlar o token'la müşteri listesinin ilk sayfasını getirir:
 
 ```bash
-TOKEN=crm_demo_admin_api_token
+TOKEN=crm_...   # Profilim sayfasında oluşturduğunuz token
 API=https://crm-demo-plum.vercel.app/api/v1
 
 curl -H "Authorization: Bearer $TOKEN" "$API/customers"
@@ -69,7 +71,7 @@ Tarayıcı konsolundan (herhangi bir sitede) de aynı istek atılabilir:
 
 ```js
 const response = await fetch('https://crm-demo-plum.vercel.app/api/v1/customers', {
-    headers: { Authorization: 'Bearer crm_demo_admin_api_token' },
+    headers: { Authorization: 'Bearer crm_...' },
 })
 console.log(await response.json())
 ```
@@ -81,7 +83,7 @@ console.log(await response.json())
 Her istekte bir API token'ı `Authorization` başlığıyla gönderilir:
 
 ```http
-Authorization: Bearer crm_demo_admin_api_token
+Authorization: Bearer crm_...
 ```
 
 İstek, token'ın sahibi olan kullanıcının rolüyle çalışır.
@@ -91,12 +93,9 @@ Authorization: Bearer crm_demo_admin_api_token
 | `admin` | Her şey |
 | `moderator` | Okuma, ekleme, güncelleme. Silme (`DELETE`) ve `/users/**` istekleri `403` döner. |
 
-### Demo token'ları
+### Demo hesapları
 
-| Hesap | Rol | Token |
-|---|---|---|
-| `admin@testmail.com` | `admin` | `crm_demo_admin_api_token` |
-| `moderator@testmail.com` | `moderator` | `crm_demo_moderator_api_token` |
+Token'lar hiçbir yerde yayınlanmaz. Demo hesaplarıyla (`admin@testmail.com`, `moderator@testmail.com`, şifreler giriş sayfasında) panele girip **Profilim** sayfasından kendi token'ınızı oluşturun. Demo hesapları ortak kullanıldığı için yeni token bir önceki ziyaretçinin token'ını geçersiz kılar; panel girişi bundan etkilenmez.
 
 Demo verileri herkese açıktır ve zaman zaman sıfırlanabilir.
 
@@ -184,7 +183,7 @@ Doğrulama hatalarında sadece ilk hatanın mesajı döner.
 
 ### Kimlikler (id)
 
-Bütün kimlikler 24 karakterlik onaltılık metinlerdir (MongoDB ObjectId), örneğin `6b0369e4e0b8722fcddf2eb0`. Bu biçimde olmayan bir id `400` döner (`Geçersiz müşteri`, `Geçersiz blog`, ...).
+Bütün kimlikler 24 karakterlik onaltılık metinlerdir (MongoDB ObjectId), örneğin `6b0369e4e0b8722fcddf2eb0`. Bu biçimde olmayan bir id `400` döner (`Geçersiz müşteri`, `Geçersiz içerik`, ...).
 
 ### Sayfalama
 
@@ -225,9 +224,9 @@ Geçersiz bir değer yok sayılmaz, `400` döner (`Geçersiz sıralama`, `Geçer
 - Kimlikler URL'den alınır. Gövdedeki `customerId`, `postId`, `noteId`, `userId` alanları yok sayılır.
 - Tanımlanmamış alanlar yok sayılır.
 
-### Zengin metin (blog ve not içeriği)
+### Zengin metin (içerik ve not metni)
 
-Blog ve notların içeriği iki alanda tutulur:
+İçeriklerin ve notların metni iki alanda tutulur:
 
 | Alan | İçerik |
 |---|---|
@@ -313,13 +312,17 @@ curl -H "Authorization: Bearer $TOKEN" "$API/dashboard?period=week"
             "total": 141,
             "onDay": 0,
             "inPeriod": 50,
-            "byStatus": { "draft": 44, "inReview": 33, "published": 64 }
+            "byStatus": { "draft": 44, "inReview": 33, "published": 64 },
+            "overdue": 12,
+            "upcoming": 18
         },
         "notes": { "total": 97, "onDay": 0, "inPeriod": 30 },
         "recentCustomers": [ { "id": "...", "fullName": "Ayşe Yılmaz", "...": "..." } ],
         "recentPosts": [ { "id": "...", "title": "...", "customer": { "...": "..." } } ],
         "recentNotes": [ { "id": "...", "content": "...", "customer": { "...": "..." } } ],
-        "topCustomers": [ { "customer": { "id": "...", "fullName": "Zeynep Koç", "...": "..." }, "postCount": 8 } ]
+        "topCustomers": [ { "customer": { "id": "...", "fullName": "Zeynep Koç", "...": "..." }, "postCount": 8 } ],
+        "overduePosts": [ { "id": "...", "title": "...", "dueDate": "...", "customer": { "...": "..." }, "assignee": { "...": "..." } } ],
+        "upcomingPosts": [ { "id": "...", "title": "...", "dueDate": "...", "customer": { "...": "..." }, "assignee": { "...": "..." } } ]
     }
 }
 ```
@@ -329,9 +332,49 @@ curl -H "Authorization: Bearer $TOKEN" "$API/dashboard?period=week"
 | `total` | `date` gününün sonuna kadar oluşturulan kayıt sayısı |
 | `onDay` | Sadece `date` gününde oluşturulanlar |
 | `inPeriod` | `period` aralığında oluşturulanlar |
-| `byStatus` | Blogların duruma göre dağılımı |
-| `recentCustomers`, `recentPosts`, `recentNotes` | `period` aralığında eklenen son 5 kayıt (blog ve notlarda `customer` dahil) |
-| `topCustomers` | En çok blogu olan 5 müşteri |
+| `byStatus` | İçeriklerin duruma göre dağılımı |
+| `overdue` | Geciken içerik sayısı: teslim günü geçmiş, henüz `published` olmayan (her zaman güncel durum, `date`'ten bağımsız) |
+| `upcoming` | Bugün ve sonraki 7 gün içinde teslim edilecek, henüz `published` olmayan içerik sayısı |
+| `recentCustomers`, `recentPosts`, `recentNotes` | `period` aralığında eklenen son 5 kayıt (içerik ve notlarda `customer` dahil) |
+| `topCustomers` | En çok içeriği olan 5 müşteri |
+| `overduePosts`, `upcomingPosts` | Teslim gününe göre sıralı ilk 5 geciken / yaklaşan içerik (`customer` ve `assignee` dahil) |
+
+---
+
+### `GET /agenda`
+
+Ajanda: `date` gününden başlayan 7 gün içinde yayın zamanı (`scheduledAt`) olan içerikler ve aynı günlerde teslim edilecek içerikler. Her içerikte `customer` ve `assignee` döner.
+
+**Yetki:** admin, moderator
+
+**Query parametreleri:**
+
+| Parametre | Zorunlu | Değerler | Açıklama |
+|---|---|---|---|
+| `date` | hayır | `YYYY-MM-DD` | Haftanın ilk günü. Varsayılan bugün; geçmiş ve ileri tarihler kabul edilir |
+| `assignee` | hayır | `me`, `none`, kullanıcı id'si | `me`: token sahibinin işleri, `none`: sorumlusu olmayanlar, id: o kullanıcının işleri. Hem zamanlanmış hem teslim listesine uygulanır |
+
+**İstek:**
+
+```bash
+curl -H "Authorization: Bearer $TOKEN" "$API/agenda?date=2026-11-30&assignee=me"
+```
+
+**Yanıt `200`:**
+
+```json
+{
+    "status": true,
+    "start": "2026-11-30",
+    "scheduledPosts": [ { "id": "...", "title": "...", "scheduledAt": "2026-12-01T07:30:00.000Z", "customer": { "...": "..." }, "assignee": { "...": "..." } } ],
+    "duePosts": [ { "id": "...", "title": "...", "dueDate": "2026-12-02T21:00:00.000Z", "customer": { "...": "..." } } ],
+    "isTruncated": false
+}
+```
+
+`isTruncated`: listelerden biri sayfa sınırına (50) ulaştıysa `true`; o hafta için gösterilmeyen içerik var demektir.
+
+**Hatalar:** `400` (`Geçersiz tarih`, `Geçersiz sorumlu`).
 
 ---
 
@@ -350,7 +393,7 @@ Müşteri listesi.
 | Parametre | Zorunlu | Değerler | Açıklama |
 |---|---|---|---|
 | `q` | hayır | metin | Ad soyad, email, telefon ya da firmada arar |
-| `postStatus` | hayır | `draft`, `inReview`, `published` | Sadece bu durumda en az bir blogu olan müşteriler |
+| `postStatus` | hayır | `draft`, `inReview`, `published` | Sadece bu durumda en az bir içeriği olan müşteriler |
 | `period` | hayır | `today`, `week`, `month` | Oluşturulma tarihi |
 | `sort` | hayır | `updated` (varsayılan), `created`, `name` | `name`: ada göre A→Z |
 | `page` | hayır | `1`, `2`, ... | Sayfa |
@@ -387,7 +430,7 @@ curl -H "Authorization: Bearer $TOKEN" "$API/customers?q=ahmet&sort=name&page=1"
 }
 ```
 
-`_count`: müşterinin not ve blog sayısı.
+`_count`: müşterinin not ve içerik sayısı.
 
 ---
 
@@ -448,7 +491,7 @@ curl -X POST "$API/customers" \
 
 ### `GET /customers/{customerId}`
 
-Tek bir müşteri; not / blog sayıları ve blogların durum dağılımıyla.
+Tek bir müşteri; not / içerik sayıları ve içeriklerin durum dağılımıyla.
 
 **Yetki:** admin, moderator
 
@@ -536,7 +579,7 @@ curl -X PATCH "$API/customers/6b0369e4e0b8722fcddf2eb0" \
 
 ### `DELETE /customers/{customerId}`
 
-Müşteriyi, bütün bloglarını ve notlarını birlikte siler.
+Müşteriyi, bütün içeriklerini ve notlarını birlikte siler.
 
 **Yetki:** admin
 
@@ -558,13 +601,51 @@ curl -X DELETE -H "Authorization: Bearer $TOKEN" "$API/customers/6b0369e4e0b8722
 
 ---
 
-## Bloglar
+## İçerikler
 
-Blog nesnesinin alanları için bkz. [Post](#post). Blog durumları: `draft` (taslak), `inReview` (incelemede), `published` (yayında).
+Ajansın müşteriye teslim ettiği işler (sosyal medya gönderisi, blog yazısı, web sayfası, e-bülten, ...). Alanlar için bkz. [Post](#post).
+
+- **Durum:** `draft` (taslak), `inReview` (onayda), `published` (yayında)
+- **Tür:** `socialMedia`, `blog`, `webPage`, `newsletter`, `other`
+- **Kanallar** (`platforms`, birden fazla olabilir): `instagram`, `tiktok`, `facebook`, `x`, `linkedin`, `youtube`, `pinterest`, `website`, `email`, `other`
+- **Teslim tarihi** (`dueDate`): gün olarak gönderilir (`YYYY-MM-DD`). Günü geçmiş ve hâlâ `published` olmayan içerik **gecikmiş** sayılır.
+- **Sorumlu** (`assigneeId`): içeriği teslim edecek sistem kullanıcısı. Yanıtta `assignee` olarak sadece herkese açık alanlarıyla döner (`id`, `name`, `surname`, `fullName`, `createdAt`).
+- **Görseller** (`images`): önce [`POST /images`](#post-images) ile S3'e yüklenir, dönen `{ key, name }` içeriğin `images` dizisine yazılır.
+
+### `POST /images`
+
+Bir görseli S3'e yükler. Görsel bir içeriğe ancak içerik kaydedilirken (`images` alanıyla) bağlanır.
+
+**Yetki:** admin, moderator
+
+**Gövde:** `multipart/form-data`, tek bir `file` alanı. JPG, PNG, WEBP veya GIF, en fazla 4 MB. Dosya türü uzantıya ya da `Content-Type`'a değil, dosyanın ilk baytlarına bakılarak belirlenir.
+
+**İstek:**
+
+```bash
+curl -X POST "$API/images" \
+  -H "Authorization: Bearer $TOKEN" \
+  -F "file=@kapak.png"
+```
+
+**Yanıt `201`:**
+
+```json
+{
+    "status": true,
+    "message": "Görsel yüklendi",
+    "image": { "key": "posts/3f1c2b9e-5a77-4c3e-9d0a-2b8f6e1d4c55.png", "name": "kapak.png", "contentType": "image/png", "size": 48213 },
+    "url": "https://<bucket>.s3.<region>.amazonaws.com/posts/3f1c2b9e-5a77-4c3e-9d0a-2b8f6e1d4c55.png"
+}
+```
+
+**Hatalar:** `400` (`Görsel seçin`, `Görsel en fazla 4 MB olabilir`, `Yalnızca JPG, PNG, WEBP veya GIF görseller yüklenebilir`).
+
+---
 
 ### `GET /customers/{customerId}/posts`
 
-Bir müşterinin blogları.
+Bir müşterinin içerikleri.
 
 **Yetki:** admin, moderator
 
@@ -576,6 +657,11 @@ Bir müşterinin blogları.
 |---|---|---|---|
 | `q` | hayır | metin | Başlık ve içerikte arar |
 | `status` | hayır | `draft`, `inReview`, `published` | Duruma göre filtre |
+| `type` | hayır | `socialMedia`, `blog`, `webPage`, `newsletter`, `other` | Türe göre filtre |
+| `platform` | hayır | `instagram`, `tiktok`, `facebook`, `x`, `linkedin`, `youtube`, `pinterest`, `website`, `email`, `other` | Bu kanal için üretilen içerikler |
+| `due` | hayır | `overdue`, `week`, `none` | `overdue`: gecikenler, `week`: 7 gün içinde teslim, `none`: teslim tarihi yok |
+| `assignee` | hayır | `me`, `none` | `me`: token sahibine atananlar, `none`: sorumlusu olmayanlar |
+| `period` | hayır | `today`, `week`, `month` | Oluşturulma tarihi |
 | `sort` | hayır | `updated` (varsayılan), `created`, `title` | `title`: başlığa göre A→Z |
 | `page` | hayır | `1`, `2`, ... | Sayfa |
 
@@ -597,10 +683,16 @@ curl -H "Authorization: Bearer $TOKEN" "$API/customers/6b0369e4e0b8722fcddf2eb0/
             "content": "Birinci satır\nİkinci satır",
             "rawContent": "<div>Birinci satır</div><div>İkinci satır</div>",
             "status": "draft",
+            "type": "socialMedia",
+            "platforms": ["instagram", "tiktok"],
+            "dueDate": "2026-11-27T21:00:00.000Z",
+            "assigneeId": "6b0369d1e0b8722fcddf2ea1",
+            "images": [],
             "customerId": "6b0369e4e0b8722fcddf2eb0",
             "isDeleted": false,
             "createdAt": "2026-11-22T22:17:16.313Z",
-            "updatedAt": "2026-11-22T22:17:16.313Z"
+            "updatedAt": "2026-11-22T22:17:16.313Z",
+            "assignee": { "id": "6b0369d1e0b8722fcddf2ea1", "name": "Test", "surname": "Moderatör", "fullName": "Test Moderatör", "createdAt": "2026-11-20T10:00:00.000Z" }
         }
     ],
     "total": 1,
@@ -615,7 +707,7 @@ curl -H "Authorization: Bearer $TOKEN" "$API/customers/6b0369e4e0b8722fcddf2eb0/
 
 ### `POST /customers/{customerId}/posts`
 
-Müşteriye blog ekler.
+Müşteriye içerik ekler.
 
 **Yetki:** admin, moderator
 
@@ -627,8 +719,14 @@ Müşteriye blog ekler.
 |---|---|---|---|
 | `title` | string | evet | 1–200 karakter |
 | `content` | string | `content` ya da `rawContent` | Düz metin, en fazla 20.000 karakter |
-| `rawContent` | string | `content` ya da `rawContent` | HTML ([zengin metin](#zengin-metin-blog-ve-not-içeriği)) |
+| `rawContent` | string | `content` ya da `rawContent` | HTML ([zengin metin](#zengin-metin-i̇çerik-ve-not-metni)) |
 | `status` | string | hayır | `draft` (varsayılan), `inReview`, `published` |
+| `type` | string | hayır | `blog` (varsayılan), `socialMedia`, `webPage`, `newsletter`, `other` |
+| `platforms` | string[] | hayır | Kanallar, ör. `["instagram","tiktok"]`. Varsayılan `[]`. Gönderilen dizi mevcut listenin yerine geçer |
+| `dueDate` | string \| null | hayır | Teslim günü, `YYYY-MM-DD`. `null` teslim tarihini kaldırır |
+| `scheduledAt` | string \| null | hayır | Planlanan yayın zamanı, `YYYY-MM-DDTHH:mm` (Türkiye saati). Ajandada bu zamanda görünür. `null` kaldırır |
+| `assigneeId` | string \| null | hayır | Sorumlu kullanıcının id'si. `null` sorumluyu kaldırır |
+| `images` | `{ key, name }[]` | hayır | [`POST /images`](#post-images) ile yüklenen görseller, sırasıyla. En fazla 10. Gönderilen dizi mevcut listenin yerine geçer |
 
 **İstek:**
 
@@ -636,7 +734,7 @@ Müşteriye blog ekler.
 curl -X POST "$API/customers/6b0369e4e0b8722fcddf2eb0/posts" \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"title":"Yeni ürünümüz","content":"Birinci satır\nİkinci satır"}'
+  -d '{"title":"Yeni ürünümüz","content":"Birinci satır\nİkinci satır","type":"socialMedia","platforms":["instagram","tiktok"],"dueDate":"2026-11-28"}'
 ```
 
 **Yanıt `201`:**
@@ -644,7 +742,7 @@ curl -X POST "$API/customers/6b0369e4e0b8722fcddf2eb0/posts" \
 ```json
 {
     "status": true,
-    "message": "Blog oluşturuldu",
+    "message": "İçerik oluşturuldu",
     "post": {
         "id": "6b0369ece0b8722fcddf2eb2",
         "title": "Yeni ürünümüz",
@@ -659,13 +757,13 @@ curl -X POST "$API/customers/6b0369e4e0b8722fcddf2eb0/posts" \
 }
 ```
 
-**Hatalar:** `400` (`Başlık zorunludur`, `İçerik zorunludur`, ...), `404` `Müşteri bulunamadı`.
+**Hatalar:** `400` (`Başlık zorunludur`, `İçerik zorunludur`, `Geçersiz teslim tarihi`, `Görsellerden biri bulunamadı, lütfen tekrar yükleyin`, ...), `404` (`Müşteri bulunamadı`, `Sorumlu kullanıcı bulunamadı`).
 
 ---
 
 ### `GET /posts`
 
-Bütün müşterilerin blogları. Her blogda sahibi olan müşteri (`customer`) de döner.
+Bütün müşterilerin içerikleri. Her içerikte sahibi olan müşteri (`customer`) de döner.
 
 **Yetki:** admin, moderator
 
@@ -675,6 +773,10 @@ Bütün müşterilerin blogları. Her blogda sahibi olan müşteri (`customer`) 
 |---|---|---|---|
 | `q` | hayır | metin | Başlık ve içerikte arar |
 | `status` | hayır | `draft`, `inReview`, `published` | Duruma göre filtre |
+| `type` | hayır | `socialMedia`, `blog`, `webPage`, `newsletter`, `other` | Türe göre filtre |
+| `platform` | hayır | `instagram`, `tiktok`, `facebook`, `x`, `linkedin`, `youtube`, `pinterest`, `website`, `email`, `other` | Bu kanal için üretilen içerikler |
+| `due` | hayır | `overdue`, `week`, `none` | `overdue`: gecikenler, `week`: 7 gün içinde teslim, `none`: teslim tarihi yok |
+| `assignee` | hayır | `me`, `none` | `me`: token sahibine atananlar, `none`: sorumlusu olmayanlar |
 | `period` | hayır | `today`, `week`, `month` | Oluşturulma tarihi |
 | `sort` | hayır | `updated` (varsayılan), `created`, `title` | Sıralama |
 | `page` | hayır | `1`, `2`, ... | Sayfa |
@@ -718,7 +820,7 @@ curl -H "Authorization: Bearer $TOKEN" "$API/posts?status=published&page=2"
 
 ### `GET /posts/{postId}`
 
-Tek bir blog.
+Tek bir içerik (`assignee` dahil).
 
 **Yetki:** admin, moderator
 
@@ -749,13 +851,13 @@ curl -H "Authorization: Bearer $TOKEN" "$API/posts/6b0369ece0b8722fcddf2eb2"
 }
 ```
 
-**Hatalar:** `400` `Geçersiz blog`, `404` `Blog bulunamadı`.
+**Hatalar:** `400` `Geçersiz içerik`, `404` `İçerik bulunamadı`.
 
 ---
 
 ### `PATCH /posts/{postId}`
 
-Blogu günceller. Sadece gönderilen alanlar değişir.
+İçeriği günceller. Sadece gönderilen alanlar değişir.
 
 **Yetki:** admin, moderator
 
@@ -763,7 +865,7 @@ Blogu günceller. Sadece gönderilen alanlar değişir.
 
 **Gövde:** [`POST /customers/{customerId}/posts`](#post-customerscustomeridposts) ile aynı alanlar, hepsi opsiyonel.
 
-Gövdede **sadece** `status` varsa yalnızca blogun durumu değişir (başlık ve içerik hiç işlenmez). Mesaj `Blog durumu güncellendi` olur.
+Gövdede **sadece** `status` varsa yalnızca içeriğin durumu değişir (diğer alanlar hiç işlenmez). Mesaj `İçerik durumu güncellendi` olur.
 
 **İstek (yayına alma):**
 
@@ -788,7 +890,7 @@ curl -X PATCH "$API/posts/6b0369ece0b8722fcddf2eb2" \
 ```json
 {
     "status": true,
-    "message": "Blog güncellendi",
+    "message": "İçerik güncellendi",
     "post": {
         "id": "6b0369ece0b8722fcddf2eb2",
         "title": "Yeni başlık",
@@ -803,13 +905,13 @@ curl -X PATCH "$API/posts/6b0369ece0b8722fcddf2eb2" \
 }
 ```
 
-**Hatalar:** `400` (`Geçersiz durum`, `Başlık zorunludur`, ...), `404` `Blog bulunamadı`.
+**Hatalar:** `400` (`Geçersiz durum`, `Başlık zorunludur`, ...), `404` `İçerik bulunamadı`.
 
 ---
 
 ### `DELETE /posts/{postId}`
 
-Blogu siler.
+İçeriği siler (görselleri S3'te kalır).
 
 **Yetki:** admin
 
@@ -824,10 +926,10 @@ curl -X DELETE -H "Authorization: Bearer $TOKEN" "$API/posts/6b0369ece0b8722fcdd
 **Yanıt `200`:**
 
 ```json
-{ "status": true, "message": "Blog silindi" }
+{ "status": true, "message": "İçerik silindi" }
 ```
 
-**Hatalar:** `403` (moderatör), `404` `Blog bulunamadı`.
+**Hatalar:** `403` (moderatör), `404` `İçerik bulunamadı`.
 
 ---
 
@@ -896,7 +998,7 @@ Müşteriye not ekler.
 | Alan | Tip | Zorunlu | Kural |
 |---|---|---|---|
 | `content` | string | `content` ya da `rawContent` | Düz metin, en fazla 5.000 karakter |
-| `rawContent` | string | `content` ya da `rawContent` | HTML ([zengin metin](#zengin-metin-blog-ve-not-içeriği)) |
+| `rawContent` | string | `content` ya da `rawContent` | HTML ([zengin metin](#zengin-metin-i̇çerik-ve-not-metni)) |
 
 **İstek:**
 
@@ -1376,6 +1478,13 @@ Tarihler ISO 8601 biçiminde, UTC olarak döner (`2026-11-22T22:17:08.874Z`).
 | `content` | string | Düz metin içerik |
 | `rawContent` | string | HTML içerik (temizlenmiş) |
 | `status` | `draft` \| `inReview` \| `published` | Durum |
+| `type` | `socialMedia` \| `blog` \| `webPage` \| `newsletter` \| `other` | İçerik türü |
+| `platforms` | string[] | Kanallar (`instagram`, `tiktok`, `facebook`, `x`, `linkedin`, `youtube`, `pinterest`, `website`, `email`, `other`) |
+| `dueDate` | string \| null | Teslim günü (sunucu saat diliminde günün başlangıcı) |
+| `scheduledAt` | string \| null | Planlanan yayın zamanı |
+| `assigneeId` | string \| null | Sorumlu kullanıcı |
+| `assignee` | `{ id, name, surname, fullName, createdAt }` \| null | Sorumlu kullanıcının herkese açık bilgileri (listelerde, tek içerikte ve dashboard'da) |
+| `images` | `{ key, name, contentType, size }[]` | Görseller. Adres: `<bucket adresi>/<key>` (`POST /images` yanıtındaki `url`) |
 | `customerId` | string | Sahibi olan müşteri |
 | `isDeleted` | boolean | Her zaman `false` |
 | `createdAt` | string | Oluşturulma zamanı |

@@ -16,7 +16,7 @@ export default function PostStatusSelect({ postId, status }: { postId: string, s
 
     return (
         <Select items={postStatusLabels} value={status} onValueChange={handleChange} disabled={isSaving}>
-            <SelectTrigger size='sm' aria-label='Blog durumu'>
+            <SelectTrigger size='sm' aria-label='İçerik durumu'>
                 {isSaving && <Spinner />}
                 <SelectValue />
             </SelectTrigger>

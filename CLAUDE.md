@@ -27,7 +27,7 @@
 - **API tokens (REST API):** every user has one active `ApiToken` (`lib/auth/apiToken.ts`: `generateApiToken` → `crm_` + `generateToken()`, `validateApiToken`, `issueApiToken`). Only the SHA-256 hash is stored; issuing a new one soft-deletes the old one. Sent as `Authorization: Bearer <token>`; the API never accepts the session cookie.
   - `authorize()` uses the Bearer token when the header is present (never falling back to the cookie), otherwise the session cookie — so every action works for both the panel and the API.
   - The raw API token is the **only** token an action may return, and only right after it is generated (`createUser`, `regenerateApiToken`), to be shown once in `ApiTokenDialog`.
-  - New users always get a token (`createUser`, `npm run user:create`). Deleting a user soft-deletes its API tokens too. Demo accounts have fixed tokens in `demoAccounts` (shown on the login page), written by `npm run api:tokens`.
+  - New users always get a token (`createUser`, `npm run user:create`). Deleting a user soft-deletes its API tokens too. **No token is ever hard-coded or published** (no fixed demo tokens, nothing on the login page): demo visitors create their own token on the profile page.
 - **Routes:** `/` is the login page, `/app/**` is the protected panel where the whole application lives. Every new panel page goes under `app/app/`.
 - `proxy.ts` runs on every request and validates the access token against the database:
   - guest on `/app/**` → redirect to `/`; logged-in user on `/` → redirect to `/app`
@@ -47,7 +47,7 @@
 - **Role permissions live only in `lib/auth/permissions.ts`** (`Permission` type, `rolePermissions`, `hasPermission`). Admin can do everything; moderator can do everything except `*:delete`, `user:*` and `apiToken:*` (the admin panel). `profile:*` (own account, `actions/profile.ts`) is for both roles; profile actions only ever touch `auth.user.id`. A new action needs a matching `Permission` (`<model>:read|create|update|delete`); change role rights there, never with `role === '...'` checks in actions.
 - Client components may call `hasPermission(user?.role, ...)` only to hide UI (e.g. `EditDeleteMenu`'s `deletePermission` hides "Sil"); the real check is always `authorize()` in the action.
 - Create users from the terminal with `npm run user:create`.
-- **Demo accounts are shared:** `isDemoAccountEmail` (`lib/auth/demo.ts`) blocks changing their password, API token and other sessions from the profile page, so one visitor can't lock the others out.
+- **Demo accounts are shared:** `isDemoAccountEmail` (`lib/auth/demo.ts`) blocks changing their password and other sessions from the profile page, so one visitor can't lock the others out. Their API token can be (re)generated there, since it is the only way a visitor gets one.
 - Changing your own password (`changePassword`) requires the current password and soft-deletes your other sessions (`getCurrentSessionId` keeps the current one).
 
 ## DTO rules
@@ -84,6 +84,19 @@
   ```
 - When adding a new model to the schema, add its type to `types.d.ts` the same way.
 
+## Content (Post) rules
+- A `Post` is a deliverable of an agency to its customer. The UI calls it **İçerik** (never "Blog"); routes stay `/app/blogs` and `/api/v1/posts`.
+- Fields: `type` (`PostType`: `socialMedia`, `blog`, `webPage`, `newsletter`, `other`, labels `postTypeLabels`), `platforms` (`PostPlatform[]`, multi-select channels: `instagram`, `tiktok`, ..., labels `postPlatformLabels`, icons `PostPlatformIcon`; filter with `{ platforms: { has } }`), `dueDate` (start of the delivery day, sent as `YYYY-MM-DD`, parsed with `parseDayValue`), `scheduledAt` (planned publish date-time, sent as `YYYY-MM-DDTHH:mm`, `parseDateTimeValue` / `toDateTimeValue`; the agenda `/app/agenda` (`getAgenda`) is built on it — there is no separate appointment model), `assigneeId` (a `User`; sent to clients only as `PublicUserDto` via the `assignee` include with `omit: { password: true }`), `images` (`PostImage[]` composite type).
+- **Overdue** = `dueDate` before today and `status !== 'published'`. Use `isPostOverdue` / `getOverdueWhere` / `getUpcomingWhere` / `getDueWhere` from `lib/period.ts`, never re-implement the rule.
+- Optional fields are always written explicitly (`null`), so `{ dueDate: null }` filters work; old documents are fixed with `npm run db:posts-backfill`.
+
+## File upload (S3) rules
+- Files go to S3 only through Server Actions (`uploadPostImage` in `actions/post.ts`) using `lib/s3.ts` (server only, credentials from `.env`). Never expose AWS credentials or use them in client code; the browser only gets `NEXT_PUBLIC_AWS_S3_BUCKET_URL` (`getImageUrl` in `lib/images.ts`).
+- Check the real file type from its bytes (`detectImageType`), never trust `file.type` or the name. Keys are random (`posts/<uuid>.<ext>`, `postImageKeyPattern`), never built from the file name.
+- When saving keys to a record, validate the pattern and confirm new keys exist with `headObject`; take size / type from S3, not from the client.
+- Limits live in `constants.ts` (`maxPostImages`, `maxPostImageSizeMb`); `next.config.ts` sets the Server Action body limit from it. S3 objects are never deleted (soft delete).
+- Images are shown with `next/image`; `next.config.ts` allows only the bucket host.
+
 ## Data access rules
 - **The panel uses Server Actions, never API routes.** The only route handlers are the REST API in `app/api/v1/**/route.ts` (for external clients); don't add route handlers anywhere else.
 - **REST API (`app/api/v1`) rules:**
@@ -96,6 +109,7 @@
 - Declare actions as `export async function` (no arrow functions).
 - After a mutation (create / update / soft delete), call `revalidatePath` for the affected pages.
 - **Prisma + MongoDB bug:** `groupBy` with `orderBy: { _count: ... }` and `take` returns arbitrary, unsorted groups. For "top N by count" use `aggregateRaw` with `$group` → `$sort` → `$limit` (see `topCustomers` in `actions/dashboard.ts`).
+- **Prisma + MongoDB null comparisons:** `lt` / `lte` on a nullable field also match `null` (null sorts below every value). Add `not: null` (see `getOverdueWhere` in `lib/period.ts`).
 - **Every list query is limited to at most `pageLimit` (50, `lib/src/constants.ts`) records** — never a `findMany` without `take`. Lists that can grow past it are paginated: the action takes a `page`, returns `total`, `page` and `pageCount` (`skip: (page - 1) * pageLimit, take: pageLimit`, a page past the end falls back to the last one), and the page uses `components/app/common/ListPagination.tsx` with the page in `?page=` (via `use-search-query`). Smaller fixed limits (`sidebarCustomerLimit`, `searchResultLimit`) stay as they are.
 
 ## Validation rules
@@ -325,4 +339,9 @@ export default function AppPageClient() {
 - `npm run db:seed -- --yes` — reset to demo data: replaces customers / blogs / notes with generated ones and keeps only the demo accounts (hard-deletes: a setup tool, not app code)
 - `npm run db:search-text` — fill / repair `searchText` of every record (after adding the field, restoring an old backup or changing `normalizeSearchText`); only outdated records are written, `updatedAt` isn't touched. `db:restore` and `db:seed` run it too
 - `npm run db:backup` / `npm run db:restore -- backups/<date>` — JSON (Extended JSON) backup of every collection / restore into empty collections (`backups/` is git-ignored: it has password and token hashes)
-- `npm run api:tokens` — give users without an API token a new one, write the demo accounts' fixed tokens (`--force` regenerates non-demo tokens)
+- `npm run api:tokens` — give users without an API token a new one (`--force` regenerates all tokens)
+- `npm run db:team-demo` — create the demo agency team (`demoTeamMembers`, moderators with random, never printed passwords); `db:seed` keeps them
+- `npm run db:platforms-demo` — give posts without channels 1–3 random social media platforms (`-- --all` redoes every post)
+- `npm run db:assign-demo` — assign users to posts without an assignee, round-robin (`-- --all` reassigns every post)
+- `npm run db:schedule-demo` — give about half of the open, unscheduled posts a publish time in the next 14 days (fills the agenda)
+- `npm run db:posts-backfill` — write defaults (`type`, `platforms`, `dueDate`, `scheduledAt`, `assigneeId`, `images`) to posts created before those fields existed

@@ -1,36 +1,54 @@
 # CRM Demo
 
-Müşterileri ve müşterilere bağlı içerikleri (blog yazıları ve notlar) yönetmek için hazırlanmış bir CRM paneli. Next.js 16 (App Router), React 19, MongoDB (Prisma) ve shadcn/ui ile yazıldı.
+Bir ajansın hesap yöneticileri için hazırlanmış içerik takip paneli: müşteriler, müşterilere teslim edilecek içerikler (sosyal medya gönderisi, blog yazısı, web sayfası, e-bülten, ...) ve notlar. Next.js 16 (App Router), React 19, MongoDB (Prisma) ve shadcn/ui ile yazıldı.
 
 Projede, benim geliştirdiğim iki açık kaynak proje de kullanılıyor:
 
 - [**use-search-query**](https://github.com/FlyingTurkman/use-search-query): Liste filtrelerini, aramayı ve sayfa numarasını URL'de tutan React hook'u (npm paketi).
-- [**RTE (rich-text-editor)**](https://github.com/FlyingTurkman/rich-text-editor): Blog ve notlarda kullanılan, shadcn registry'si üzerinden kurulan zengin metin editörü.
+- [**RTE (rich-text-editor)**](https://github.com/FlyingTurkman/rich-text-editor): İçerik ve notlarda kullanılan, shadcn registry'si üzerinden kurulan zengin metin editörü.
 
 **Ne yapılabiliyor?**
 
 - Müşteri ekleme, listeleme, düzenleme, silme
-- Müşteriye bağlı blog yazıları ve notlar (zengin metin editörüyle)
-- Blog durumu (`Taslak` → `İncelemede` → `Yayında`) güncelleme ve duruma göre filtreleme
-- Genel durumu özetleyen dashboard
+- Müşteriye bağlı içerikler ve notlar (zengin metin editörüyle)
+  - İçerik **türü** (sosyal medya, blog yazısı, web sayfası, e-bülten, diğer)
+  - Üretildiği **kanallar** (Instagram, TikTok, Facebook, X, LinkedIn, YouTube, Pinterest, web sitesi, e-posta); birden fazla seçilebilir
+  - Planlanan **yayın zamanı** (tarih ve saat)
+  - **Teslim tarihi** ve **sorumlu kişi**; teslim günü geçmiş ve yayında olmayan içerikler **gecikmiş** olarak işaretlenir
+  - **Görseller** (AWS S3'e yüklenir)
+- İçerik durumu (`Taslak` → `İncelemede` → `Yayında`) güncelleme; durum, tür, kanal, teslim ve sorumluya göre filtreleme
+- **Ajanda:** zamanlanmış içeriklerin haftalık, saat dilimli takvimi; her günün teslimleri en üst satırda, her hücreden o saate yeni içerik eklenebilir
+- Genel durumu özetleyen dashboard: geciken içerikler, yaklaşan teslimler, durum dağılımı
 - Rol tabanlı yetki (admin / moderatör) ve kullanıcı yönetimi (Admin Paneli)
 - Kullanıcı başına API token'ı ile çalışan RESTful API (`/api/v1`)
 - Profil sayfası: ad-soyad, şifre, kişisel API token'ı ve açık oturumlar
 
 ## Demo hesapları
 
-Giriş sayfasında da yazıyor; **Bilgileri doldur** butonu formu otomatik doldurur. API token'ı [REST API](api.md) istekleri içindir.
+Giriş sayfasında da yazıyor; **Bilgileri doldur** butonu formu otomatik doldurur.
 
-| Rol | Email | Şifre | API token | Yapabildikleri |
-|---|---|---|---|---|
-| Admin | `admin@testmail.com` | `12345678` | `crm_demo_admin_api_token` | Her şey: silme ve Admin Paneli dahil |
-| Moderatör | `moderator@testmail.com` | `12345678` | `crm_demo_moderator_api_token` | Ekleme ve düzenleme; silme yok, Admin Paneli yok |
+| Rol | Email | Şifre | Yapabildikleri |
+|---|---|---|---|
+| Admin | `admin@testmail.com` | `12345678` | Her şey: silme ve Admin Paneli dahil |
+| Moderatör | `moderator@testmail.com` | `12345678` | Ekleme ve düzenleme; silme yok, Admin Paneli yok |
+
+[REST API](api.md) için API token'ı hiçbir yerde yayınlanmaz: giriş yaptıktan sonra **Profilim** sayfasından kendi token'ınızı oluşturun.
 
 ---
 
 ## İçindekiler
 
 - [Teknolojiler](#teknolojiler)
+- [Teknoloji Tercihleri](#teknoloji-tercihleri)
+  - [Next.js](#nextjs)
+  - [TypeScript](#typescript)
+  - [MongoDB](#mongodb)
+  - [Prisma ORM](#prisma-orm)
+  - [AWS S3](#aws-s3)
+  - [Auth Mimarisi](#auth-mimarisi)
+  - [shadcn/ui ve Tailwind CSS](#shadcnui-ve-tailwind-css)
+  - [react-hook-form ve zod](#react-hook-form-ve-zod)
+  - [use-search-query](#use-search-query)
 - [Mimari](#mimari)
   - [İstek akışı](#istek-akışı)
   - [Klasör yapısı](#klasör-yapısı)
@@ -38,13 +56,15 @@ Giriş sayfasında da yazıyor; **Bilgileri doldur** butonu formu otomatik doldu
   - [Kimlik doğrulama](#kimlik-doğrulama)
   - [Yetkilendirme](#yetkilendirme)
   - [Veri erişim kuralları](#veri-erişim-kuralları)
-  - [Zengin metin (blog ve notlar)](#zengin-metin-blog-ve-notlar)
+  - [Zengin metin (içerik ve notlar)](#zengin-metin-içerik-ve-notlar)
+  - [Görseller (S3)](#görseller-s3)
   - [Arama, filtre ve sayfalama](#arama-filtre-ve-sayfalama)
   - [Arayüz](#arayüz)
 - [REST API](#rest-api) ([api.md](api.md))
 - [Kurulum](#kurulum)
 - [Komutlar](#komutlar)
 - [Güvenlik notları](#güvenlik-notları)
+- [Tasarım tercihleri](#tasarım-tercihleri)
 - [Bilinen kısıtlar](#bilinen-kısıtlar)
 
 ---
@@ -63,8 +83,70 @@ Giriş sayfasında da yazıyor; **Bilgileri doldur** butonu formu otomatik doldu
 | URL durumu | [use-search-query](https://github.com/FlyingTurkman/use-search-query) |
 | Şifreleme | argon2 (`argon2id`) |
 | Bildirimler | sonner |
+| Dosya depolama | AWS S3 (`@aws-sdk/client-s3`) |
 
 ---
+
+## Teknoloji Tercihleri
+
+Her tercih için üç soruyu cevaplamaya çalıştım: **neden seçildi**, **alternatifi neydi** ve **bedeli ne oldu**.
+
+### Next.js
+
+**Neden:** Sunucu ve istemci tarafını tek projede, tek dilde yazabildiğim ve ekosistemi en geniş React framework'ü olduğu için tercih ettim. Bu projede doğrudan kullandığım özellikleri:
+
+- **Server Actions:** Panelin bütün veri işlemleri ayrı bir API katmanı yazmadan Server Action'larla yapılıyor. REST API de (`app/api/v1`) aynı action'ları çağırıyor; doğrulama, yetki ve iş kuralları tek yerde duruyor, panel ile API birbirinden ayrışamıyor.
+- **Server Components ve `cache()`:** Veri sunucuda yükleniyor, istemciye sadece gereken kısmı gidiyor. Layout, sayfa ve sayfa başlığı aynı kaydı istek başına tek sorguyla okuyor.
+- **`proxy.ts`:** Her istekte token kontrolü ve yenileme tek bir dosyada.
+- **`loading.tsx` ve `next/image`:** Sayfa iskeletleri ve görsel optimizasyonu framework'ten geliyor.
+- **Vercel:** Ek ayar gerektirmeden deploy. Proje test case olduğu için hızlı deploy amacıyla tercih ettim diğer alternatifler de gerçek proje için değerlendirilebilir.
+
+Yaygın kullanımın bir avantajı da kendi yazdığım kütüphaneleri kolayca paylaşabilmem: bu projede liste filtrelerini yöneten [use-search-query](https://github.com/FlyingTurkman/use-search-query) ve zengin metin editörü [RTE](https://github.com/FlyingTurkman/rich-text-editor), daha önce geliştirip yayınladığım kütüphaneler.
+
+
+### MongoDB
+
+**Neden:** Esnek şema ve yatay ölçeklenebilirlik (replica set, sharding, MongoDB Atlas'ın çok bölgeli kümeleri). Esnekliğin bu projede somut bir karşılığı oldu: içeriğe sonradan tür, kanal, teslim tarihi, yayın zamanı, sorumlu ve görsel alanları eklendi; migration yazmak gerekmedi, `db:push` ve eski kayıtlara varsayılan yazan bir backfill script'i yetti. İçerik görselleri gibi iç içe veriler de ayrı bir tablo yerine kaydın içinde (`PostImage[]`) tutulabiliyor.
+
+**Alternatif:** PostgreSQL. Dürüst olmak gerekirse bu projenin verisi ilişkisel (müşteri → içerik → not) ve PostgreSQL de uygun olurdu. Mongo'yu, şemanın hızla değişeceği bir demo için esnekliği ve Atlas'ın ücretsiz katmanıyla kurulumun kolaylığı nedeniyle seçtim.
+
+### Prisma ORM
+
+**Neden:** MongoDB'nin uygulama tarafında taklit edilmesi gereken ilişkilerini (`include`, ilişkili sorgular, `onDelete` davranışı) tipli ve okunaklı bir API ile kullanmamı sağlıyor. Şema tek dosyada (`prisma/schema.prisma`) ve uygulamanın tipleri buradan üretiliyor. Global `omit` ve client extension'ları da işe yaradı: şifre hash'i ve arama alanı hiçbir sorguda varsayılan olarak dönmüyor, Türkçe karakterden bağımsız arama alanını (`searchText`) her yazmada bir extension kendisi güncelliyor.
+
+**Alternatif:** MongoDB'nin resmî Node.js sürücüsü ya da Mongoose. İlişkisiz, belge odaklı bir tasarım yapıyor olsaydım Prisma'yı kullanmaz, resmî sürücüyü tercih ederdim.
+
+### AWS S3
+
+**Neden:** Yüksek dayanıklılık, düşük maliyet, IAM ile ince yetkilendirme ve dosya sayısından bağımsız ölçeklenme. Görseller veritabanında değil S3'te; içerik kaydında sadece anahtarı, adı, türü ve boyutu tutuluyor.
+
+**Alternatif:** Vercel Blob, Cloudinary ya da görselleri veritabanında tutmak. Veritabanında tutmak belgeleri şişirirdi; S3 ise sağlayıcıdan bağımsız bir standart (Cloudflare R2, MinIO gibi S3 uyumlu servislere de taşınabilir).
+
+
+### Auth Mimarisi
+
+**Şifreler: argon2id.** md5 ya da SHA gibi hash fonksiyonları hızlı olmak için tasarlandı; parola saklamak için bu bir dezavantaj, çünkü sızan bir veritabanında saniyede milyarlarca deneme yapılabiliyor. argon2id ise bilerek yavaş ve bellek yoğun; GPU ile kaba kuvvet saldırısını çok pahalı hale getiriyor. Password Hashing Competition'ın kazananı ve OWASP'ın ilk önerisi olduğu için bcrypt yerine argon2id seçtim.
+
+**Oturum: JWT değil, opak token.** Asıl tercih bu. JWT imzalı olduğu için sunucu onu veritabanına bakmadan doğrulayabilir, ama bu yüzden süresi dolana kadar iptal edilemez. Bu projede iptalin anında olması gereken durumlar var: çıkış, şifre değişimi, admin'in bir kullanıcıyı silmesi ya da şifresini sıfırlaması. Bu yüzden token'lar rastgele değerler (96 bayt) ve her istekte veritabanında kontrol ediliyor:
+
+- Veritabanında token'ın kendisi değil, **SHA-256 hash'i** tutuluyor; veritabanı sızsa bile token'lar kullanılamaz.
+- Token'lar **httpOnly** çerezde; JavaScript okuyamadığı için XSS ile çalınamaz. `sameSite: lax` CSRF'e karşı koruyor.
+- Kısa ömürlü access token (15 dk) ve uzun ömürlü refresh token (30 gün); yenilemede ikisi birden değişiyor ve eskiler anında geçersiz oluyor.
+- REST API için ayrı, kullanıcı başına bir API token'ı var; API çerez kabul etmediği için CORS her origin'e güvenle açılabiliyor.
+
+
+Gerçek bir projede bunlara e-posta, SMS ya da authenticator uygulamasıyla **iki adımlı doğrulama (2FA)** ve giriş denemelerine hız sınırı (rate limit) eklerdim.
+
+
+### react-hook-form ve zod
+
+**Neden ikisi birden:** İstemci doğrulaması (react-hook-form) kullanıcı deneyimi içindir: hata anında, alanın altında görünür ve form gereksiz yere yeniden çizilmez. Sunucu doğrulaması (zod) ise güvenlik içindir: Server Action'lar ve REST API doğrudan çağrılabildiği için istemciden gelen hiçbir veriye güvenilmez. Bütün sınırlar ve mesajları `lib/src/constants.ts`'den geldiği için iki taraf birbirinden ayrışamıyor.
+
+### use-search-query
+
+**Neden:** Filtreler, arama ve sayfa numarası bileşen state'inde değil URL'de tutuluyor (`?status=inReview&due=overdue&page=2`). Böylece bir filtrelenmiş liste link olarak paylaşılabiliyor, geri tuşu ve sayfa yenileme filtreleri koruyor, sunucu sayfası da filtreyi doğrudan URL'den okuyor. Bunun için daha önce yazıp npm'de yayınladığım kendi kütüphanemi kullandım.
+
+**Alternatif:** nuqs ya da `useSearchParams` ile elle yazılmış yardımcılar. Kendi kütüphanem bu projenin ihtiyacını (birden fazla parametreyi birlikte güncellemek, varsayılan değeri URL'den çıkarmak) zaten karşılıyordu.
 
 ## Mimari
 
@@ -107,7 +189,7 @@ Mesajlar istemcide **sonner toast** ile gösterilir; alan hataları ilgili alan�
 ├── actions/                 Server Action'lar (model başına bir dosya, 'use server')
 │   ├── auth.ts              login / logout
 │   ├── customer.ts          müşteri CRUD, liste, arama
-│   ├── post.ts              blog CRUD, durum güncelleme, liste, arama
+│   ├── post.ts              içerik CRUD, durum güncelleme, liste, arama, görsel yükleme
 │   ├── note.ts              not CRUD, liste, arama
 │   ├── user.ts              sistem kullanıcıları (Admin Paneli)
 │   ├── apiToken.ts          kullanıcıların API token'ları (Admin Paneli)
@@ -119,7 +201,8 @@ Mesajlar istemcide **sonner toast** ile gösterilir; alan hataları ilgili alan�
 │   └── app/                 /app/** → korumalı panel
 │       ├── page.tsx         dashboard
 │       ├── customers/       müşteriler, [customerId]/{blogs,notes,edit}
-│       ├── blogs/           tüm bloglar
+│       ├── blogs/           tüm içerikler (adres tarihsel olarak /blogs)
+│       ├── agenda/          ajanda: zamanlanmış içeriklerin haftalık takvimi
 │       ├── notes/           tüm notlar
 │       ├── admin/           kullanıcı yönetimi (sadece admin)
 │       └── profile/         Profilim: ad-soyad, şifre, API token'ı, oturumlar
@@ -133,11 +216,13 @@ Mesajlar istemcide **sonner toast** ile gösterilir; alan hataları ilgili alan�
 │   ├── api.ts               REST API yardımcıları (HTTP ↔ Server Action)
 │   ├── data.ts              istek başına önbelleklenmiş okumalar (React cache)
 │   ├── richText.ts          HTML temizleme (sanitize)
-│   ├── period.ts            "Bugün / Son 7 gün / Son 30 gün" filtresi
+│   ├── period.ts            "Bugün / Son 7 gün / Son 30 gün" filtresi, teslim / gecikme kuralları
+│   ├── s3.ts                S3 istemcisi (sadece sunucu)
+│   ├── images.ts            görsel adresi ve dosya türü tespiti
 │   ├── search.ts            Mongo regex kaçırma
 │   └── src/
 │       ├── constants.ts     tüm sınırlar ve sabitler
-│       └── scripts/         CLI script'leri (user:create, api:tokens)
+│       └── scripts/         CLI script'leri (user:create, api:tokens, db:posts-backfill, ...)
 ├── prisma/schema.prisma
 ├── proxy.ts                 her istekte çalışan kimlik kontrolü (Next 16 middleware)
 └── types.d.ts               model tipleri
@@ -147,10 +232,11 @@ Mesajlar istemcide **sonner toast** ile gösterilir; alan hataları ilgili alan�
 
 ```mermaid
 erDiagram
-    Customer ||--o{ Post : "blogları"
+    Customer ||--o{ Post : "içerikleri"
     Customer ||--o{ Note : "notları"
     User ||--o{ Session : "oturumları"
     User ||--o{ ApiToken : "API token'ları"
+    User |o--o{ Post : "sorumlu olduğu içerikler"
 
     Customer {
         ObjectId id
@@ -168,6 +254,12 @@ erDiagram
         string content "düz metin"
         string rawContent "HTML"
         PostStatus status "draft | inReview | published"
+        PostType type "socialMedia | blog | webPage | newsletter | other"
+        PostPlatform[] platforms "instagram, tiktok, ..."
+        datetime dueDate "opsiyonel, teslim günü"
+        datetime scheduledAt "opsiyonel, yayın zamanı"
+        ObjectId assigneeId FK "opsiyonel, User"
+        PostImage[] images "S3 key, ad, tür, boyut"
         ObjectId customerId FK
         boolean isDeleted
     }
@@ -278,7 +370,7 @@ if (!auth.user) {
 | Bütün sınırlar ve mesajları `lib/src/constants.ts`'den gelir | Kod içinde sihirli sayı yok |
 | MongoDB `contains` sorguları regex'e çevrildiği için arama metni kaçırılır (`lib/search.ts`) | `(` gibi karakterler sorguyu bozmaz, `.` her şeyle eşleşmez |
 
-### Zengin metin (blog ve notlar)
+### Zengin metin (içerik ve notlar)
 
 ```mermaid
 flowchart LR
@@ -297,30 +389,45 @@ flowchart LR
 - **Düzenleme:** Editör HTML okuyamadığı için `htmlToDocument` kayıtlı HTML'i editörün kendi belge formatına geri çevirir.
 - **Uyarlama:** Editör Radix tabanlı shadcn için yazılmıştı. `components/rte/` içindeki toggle group ve select'ler Base UI'ye uyarlandı.
 
+### Görseller (S3)
+
+- İçerik formunda seçilen her görsel hemen `uploadPostImage` Server Action'ıyla sunucuya gönderilir; sunucu türünü ve boyutunu (en fazla 4 MB) kontrol edip S3'e `posts/<uuid>.<uzantı>` anahtarıyla yükler. Form sadece dönen anahtarları tutar, görseller içerik kaydedilince ona bağlanır.
+- **Neden presigned URL değil?** Tarayıcıdan doğrudan S3'e yükleme bucket'ta CORS ayarı ister ve dosyanın gerçek türü sunucuda kontrol edilemez. 4 MB sınırı Vercel'in 4,5 MB istek limitinin altında kalıyor, bu yüzden sunucu üzerinden yükleme basit ve güvenli bir seçim.
+- İçerikte sadece `{ key, name, contentType, size }` saklanır; adres `NEXT_PUBLIC_AWS_S3_BUCKET_URL` + key ile oluşturulur ve `next/image` ile gösterilir (`next.config.ts` sadece bu bucket'a izin verir).
+- Silme yine soft delete: içerikten kaldırılan ya da silinen içeriğin görselleri S3'ten silinmez.
+
 ### Arama, filtre ve sayfalama
 
-- **Türkçe karakterlere duyarsız arama:** `ŞAHİN` ile `sahin`, `IŞIK` ile `isik`, `GÜNEŞ` ile `gunes` aynı sonuçları bulur. Müşteri, blog, not ve kullanıcılar aranabilir alanlarının sadeleştirilmiş bir kopyasını `searchText` alanında tutar; aranan metin de aynı şekilde sadeleştirilir (`lib/src/searchText.ts`). Bu alanı bir Prisma eklentisi her kayıt oluşturma ve güncellemede kendisi yeniden hesaplar, bu yüzden eskimez. Alan API yanıtlarında ve arayüzde görünmez.
+- **Türkçe karakterlere duyarsız arama:** `ŞAHİN` ile `sahin`, `IŞIK` ile `isik`, `GÜNEŞ` ile `gunes` aynı sonuçları bulur. Müşteri, içerik, not ve kullanıcılar aranabilir alanlarının sadeleştirilmiş bir kopyasını `searchText` alanında tutar; aranan metin de aynı şekilde sadeleştirilir (`lib/src/searchText.ts`). Bu alanı bir Prisma eklentisi her kayıt oluşturma ve güncellemede kendisi yeniden hesaplar, bu yüzden eskimez. Alan API yanıtlarında ve arayüzde görünmez.
 
-- **Liste filtreleri URL'de tutulur**, örneğin `/app/blogs?q=seo&status=published&period=week&sort=title&page=2`. Linkler paylaşılabilir; geri tuşu ve sayfa yenileme filtreleri korur. URL'yi [use-search-query](https://github.com/FlyingTurkman/use-search-query) günceller.
+- **Liste filtreleri URL'de tutulur**, örneğin `/app/blogs?q=seo&status=inReview&type=socialMedia&platform=instagram&due=overdue&assignee=me&page=2`. Linkler paylaşılabilir; geri tuşu ve sayfa yenileme filtreleri korur. URL'yi [use-search-query](https://github.com/FlyingTurkman/use-search-query) günceller.
 - **Ortak bileşenler:**
   - `ListFilters`: arama kutusu ve açılır filtreler
   - `ListPagination`: shadcn Pagination
-- **Filtreler:** Tüm listelerde arama, sıralama ve eklenme zamanı (Bugün / Son 7 gün / Son 30 gün) var. Bloglarda durum filtresi de var. Müşterilerde "belirli durumda blogu olanlar" filtresi var.
+- **Filtreler:** Tüm listelerde arama, sıralama ve eklenme zamanı (Bugün / Son 7 gün / Son 30 gün) var. İçeriklerde durum, tür, kanal, teslim (gecikenler / 7 gün içinde / tarihsiz) ve sorumlu (bana atananlar / atanmamış) filtreleri de var. Müşterilerde "belirli durumda içeriği olanlar" filtresi var.
 - **Hızlı arama:** Her bölümün üst çubuğundaki arama butonları shadcn `Popover` + `Command` ile çalışır. Yazmayı bıraktıktan 300 ms sonra arama yapılır ve geç gelen eski sonuçlar yok sayılır.
 - **Geçersiz değerler:** URL'deki geçersiz değerler (`?status=xyz`, `?page=abc`) hata vermez, yok sayılır. Son sayfadan büyük bir sayfa son sayfaya düşer.
 
 ### Arayüz
 
 - **shadcn/ui** (`base-nova`): `components/ui` üretilmiş bileşenlerdir; projenin kendi bileşenleri `components/app` altındadır.
-- **Bölüm düzeni:** Her bölümde (Müşteriler, Bloglar, Notlar, Admin) aynı düzen var:
+- **Bölüm düzeni:** Her bölümde (Müşteriler, İçerikler, Notlar, Admin) aynı düzen var:
   - shadcn **Sidebar** (son güncellenenler listesiyle)
   - üst çubukta aç/kapat butonu, arama ve breadcrumb
 - **Dashboard:**
   - Başlıktaki takvimden bir gün seçilebilir (`?date=`). Bütün sayılar o günün sonundaki duruma göre hesaplanır; gelecek günler seçilemez.
-  - Sayı kartları; her birinden filtrelenmiş listeye gidilir.
-  - Blog durumlarını gösteren halka grafik; bir dilime tıklayınca o durum filtrelenir. Renkler renk körlüğü testinden geçirilmiş bir paletten gelir, açık ve koyu tema için ayrı tanımlıdır.
-  - En çok blogu olan müşteriler.
+  - Sayı kartları; her birinden filtrelenmiş listeye gidilir. "Geciken içerik" kartı gecikenler listesine gider.
+  - **Geciken içerikler** (en eski teslim günü önce) ve **yaklaşan teslimler** (7 gün) listeleri; müşteri, tür, durum ve sorumluyla. Bu ikisi seçilen günden bağımsız olarak her zaman güncel durumu gösterir.
+  - İçerik durumlarını gösteren halka grafik; bir dilime tıklayınca o durum filtrelenir. Renkler renk körlüğü testinden geçirilmiş bir paletten gelir, açık ve koyu tema için ayrı tanımlıdır.
+  - En çok içeriği olan müşteriler.
   - Tarih aralığı seçilebilen "eklenenler" bölümü.
+- **Ajanda (`/app/agenda`):**
+  - Seçilen günden başlayan 7 günlük tablo: sütunlar günler, satırlar saatler. Satırlar o haftanın ilk paylaşımının saatinden son paylaşımının saatine kadar uzanır (zamanlanmış içerik yoksa 08:00–20:00). Gün başlıkları ve saat sütunu kaydırırken sabit kalır. İçerikler yayın zamanına (`scheduledAt`) göre hücresine yerleşir; kartın sol kenar rengi durumu, sağ üstteki ikonlar kanalları gösterir.
+  - Karta tıklayınca ayrıntılar açılır (mobilde alttan çekmece): müşteri, tür, kanallar, teslim, sorumlu, buradan durum değiştirme ve görüntüle / düzenle linkleri.
+  - En üstteki **Teslim** satırı o gün teslim edilecek içerikleri gösterir; gecikenler kırmızıdır.
+  - Her hücrenin **+** butonu o gün ve saat dolu olarak yeni içerik formunu açar.
+  - Hafta `?date=` ile URL'de tutulur (önceki / sonraki hafta, takvimden gün seçme).
+  - **Sorumlu filtresi** (`?assignee=`): diğer arama çubukları gibi `ResponsivePopover` + `Command`. Üstte Tüm sorumlular / Bana atananlar / Atanmamış, yazınca kullanıcılar sunucuda aranır (Türkçe karakterden bağımsız, sadece ada göre: moderatör e-posta yazarak kimin adresi olduğunu öğrenemez). Hem zamanlanmış içeriklere hem teslim satırına uygulanır; hafta değişince filtre korunur.
 - **Mobil uyum:**
   - Ana menü soldan, profil menüsü sağdan **Sheet** olarak açılır.
   - Bölüm sidebar'ları telefonda Sheet'e dönüşür.
@@ -328,11 +435,11 @@ flowchart LR
 - **Profilim (`/app/profile`):**
   - Ad-soyad güncellenir; menüdeki isim hemen değişir. Email ve rolü sadece bir admin değiştirebilir.
   - Şifre değiştirmek için mevcut şifre istenir. Şifre değişince diğer cihazlardaki oturumlar kapatılır, bu oturum açık kalır.
-  - Kişinin kendi API token'ı yenilenebilir.
+  - Kişinin kendi API token'ı oluşturulur / yenilenir.
   - Diğer cihazlardaki açık oturumların sayısı görünür ve hepsi tek tuşla kapatılabilir.
-  - **Demo hesaplarında** şifre, API token'ı ve oturum kapatma kilitlidir. Hesaplar herkese açık olduğu için bir ziyaretçi diğerlerini dışarıda bırakamaz (`lib/auth/demo.ts`).
+  - **Demo hesaplarında** şifre ve oturum kapatma kilitlidir. Hesaplar herkese açık olduğu için bir ziyaretçi diğerlerini panelden dışarıda bırakamaz (`lib/auth/demo.ts`). API token'ı ise demo hesaplarda da oluşturulabilir, çünkü token hiçbir yerde yayınlanmaz ve bir ziyaretçinin onu almasının tek yolu budur.
 - **Yükleme iskeletleri:** Her sayfanın bir `loading.tsx` dosyası var ve veri gelene kadar o sayfanın şeklinde shadcn `Skeleton` gösteriliyor. Hangi iskeletin çizileceğini `RouteSkeleton` adrese bakarak seçiyor. Örneğin dashboard'dan bir müşteriye geçerken sidebar, müşteri başlığı ve içerik birlikte iskelet olarak görünür; bölüm içinde gezerken sadece değişen kısım iskelete döner.
-- **Sayfa başlıkları:** Her sayfanın kendi başlığı var (`Ahmet Yılmaz - Bloglar | CRM` gibi).
+- **Sayfa başlıkları:** Her sayfanın kendi başlığı var (`Ahmet Yılmaz - İçerikler | CRM` gibi).
 
 ## REST API
 
@@ -343,7 +450,7 @@ Mimari açıdan:
 - Route'lar (`app/api/v1/**/route.ts`) iş mantığını kendileri yazmaz; panelin kullandığı **aynı Server Action'ları** çağırır. Bu yüzden zod doğrulaması, rol yetkileri, soft delete, `pageLimit` ve HTML temizleme API'de de birebir aynıdır. HTTP ile action'lar arasındaki çeviri `lib/api.ts` içindedir.
 - İstekler `Authorization: Bearer <token>` ile gelir. Her kullanıcının bir API token'ı vardır; veritabanında sadece SHA-256 hash'i tutulur (`ApiToken` modeli). API oturum çerezini kabul etmez.
 - **CORS** her origin'e açıktır (`next.config.ts` → `headers()`). API çerez kullanmadığı için bu güvenlidir: başka bir site ziyaretçinin oturumuyla istek atamaz, sadece kendi token'ıyla atabilir.
-- Token'lar `npm run user:create` ve Admin Paneli'nde kullanıcı eklenirken oluşturulur; `npm run api:tokens` token'ı olmayan kullanıcılara token verir ve demo hesapların sabit token'larını (`demoAccounts`) geri yazar.
+- Token'lar `npm run user:create` ve Admin Paneli'nde kullanıcı eklenirken, ya da Profilim sayfasında oluşturulur; `npm run api:tokens` token'ı olmayan kullanıcılara token verir. Kaynak kodda ya da sayfalarda sabit bir token yoktur.
 
 ---
 
@@ -359,11 +466,11 @@ git clone https://github.com/FlyingTurkman/crm-demo.git
 cd crm-demo
 npm install                 # postinstall: prisma generate
 
-cp .env.example .env        # DATABASE_URL'yi kendi bağlantı adresinizle doldurun
+cp .env.example .env        # DATABASE_URL ve AWS bilgilerini doldurun
 npm run db:push             # şemayı MongoDB'ye uygular (Mongo'da migration yok)
 npm run user:create         # ilk admin kullanıcıyı oluşturur (interaktif), API token'ını da yazar
-npm run api:tokens          # (opsiyonel) token'ı olmayan kullanıcılara token verir, demo token'larını yükler
-npm run db:seed -- --yes    # (opsiyonel) demo hesapları + 60 müşteri, ~140 blog, ~100 not ile örnek veri
+npm run api:tokens          # (opsiyonel) token'ı olmayan kullanıcılara token verir
+npm run db:seed -- --yes    # (opsiyonel) demo hesapları + demo ekibi + 60 müşteri, ~140 içerik, ~100 not ile örnek veri
 
 npm run dev                 # http://localhost:3000
 ```
@@ -372,7 +479,20 @@ npm run dev                 # http://localhost:3000
 
 ```env
 DATABASE_URL="mongodb+srv://USER:PASSWORD@CLUSTER.mongodb.net/crm-demo"
+
+# İçerik görselleri (sadece sunucu kullanır)
+AWS_REGION="eu-central-1"
+AWS_ACCESS_KEY_ID="..."
+AWS_SECRET_ACCESS_KEY="..."
+AWS_S3_BUCKET_NAME="bucket-adi"
+AWS_S3_BUCKET_URL="https://bucket-adi.s3.eu-central-1.amazonaws.com"
+# Tarayıcının görselleri gösterdiği adres (gizli değildir)
+NEXT_PUBLIC_AWS_S3_BUCKET_URL="https://bucket-adi.s3.eu-central-1.amazonaws.com"
 ```
+
+Bucket'taki `posts/*` nesneleri herkese açık okunabilir olmalıdır (görseller doğrudan bucket adresinden gösterilir). Yükleme sunucudan yapıldığı için bucket'ta CORS ayarı gerekmez. IAM kullanıcısına `s3:PutObject` ve `s3:GetObject` (`HeadObject` için) yetkisi yeterlidir.
+
+Bu sürümden önce oluşturulmuş bir veritabanı kullanıyorsanız `npm run db:push` sonrasında bir kez `npm run db:posts-backfill` çalıştırın: eski içeriklere varsayılan tür ve boş teslim / sorumlu / görsel alanlarını yazar.
 
 ## Komutlar
 
@@ -384,11 +504,16 @@ DATABASE_URL="mongodb+srv://USER:PASSWORD@CLUSTER.mongodb.net/crm-demo"
 | `npm run db:push` | Prisma şemasını MongoDB'ye uygular |
 | `npm run db:studio` | Prisma Studio (veritabanını tarayıcıda görüntüleme) |
 | `npm run user:create` | Terminalden admin veya moderatör kullanıcı oluşturur, API token'ını bir kez gösterir |
-| `npm run db:seed -- --yes` | Demo verisi oluşturur: müşteri, blog ve notları **silip** yeniden üretir (son 90 güne yayılmış, birkaçı bugün), sadece demo hesaplarını bırakır. `--yes` olmadan sadece ne yapacağını yazar |
+| `npm run db:seed -- --yes` | Demo verisi oluşturur: müşteri, içerik ve notları **silip** yeniden üretir (son 90 güne yayılmış, birkaçı bugün), sadece demo hesaplarını bırakır. `--yes` olmadan sadece ne yapacağını yazar |
 | `npm run db:search-text` | Bütün kayıtların arama alanını (`searchText`) doldurur / onarır. Eski bir yedek geri yüklendiğinde ya da arama kuralı değiştiğinde gerekir; `db:restore` ve `db:seed` bunu kendisi çalıştırır |
 | `npm run db:backup` | Bütün koleksiyonları `backups/<tarih>/` altına JSON (Extended JSON) olarak yedekler |
 | `npm run db:restore -- backups/<tarih>` | Yedeği `DATABASE_URL`'deki veritabanına yükler; sadece boş koleksiyonları doldurur |
-| `npm run api:tokens` | Token'ı olmayan kullanıcılara API token'ı verir, demo hesaplara sabit token'larını yazar (`--force` ile demo dışındakileri yeniler) |
+| `npm run api:tokens` | Token'ı olmayan kullanıcılara API token'ı verir ve bir kez yazar (`--force` ile hepsini yeniler) |
+| `npm run db:schedule-demo` | Yayında olmayan ve zamanı olmayan içeriklerin yaklaşık yarısına önümüzdeki 14 gün içinde mesai saatlerinde bir yayın zamanı verir (ajandayı doldurmak için) |
+| `npm run db:team-demo` | Demo ajans ekibini (`demoTeamMembers`, 6 moderatör, `@ajans.test`) oluşturur. Şifreleri rastgeledir ve yazdırılmaz; gerekirse Admin Paneli'nden sıfırlanır |
+| `npm run db:platforms-demo` | Platformu boş içeriklere rastgele 1–3 sosyal medya platformu yazar; `-- --all` ile hepsini yeniler |
+| `npm run db:assign-demo` | Sorumlusu olmayan içeriklere kullanıcıları sırayla atar; `-- --all` ile bütün içerikleri yeniden dağıtır |
+| `npm run db:posts-backfill` | Tür / kanal / teslim tarihi / sorumlu / görsel alanları eklenmeden önce oluşturulmuş içeriklere varsayılan değerleri yazar (`updatedAt` değişmez) |
 
 ---
 
@@ -400,5 +525,21 @@ DATABASE_URL="mongodb+srv://USER:PASSWORD@CLUSTER.mongodb.net/crm-demo"
 - **Şifre hash'i:** Hiçbir sorguda seçilmez (giriş doğrulaması hariç).
 - **HTML içerik:** Kaydedilmeden önce beyaz listeyle temizlenir.
 - **Giriş hataları:** Bilinmeyen email ve yanlış şifre için aynı mesaj döner, böylece kayıtlı email'ler tahmin edilemez.
+- **Görsel yükleme:** Dosya türü tarayıcının bildirdiğine değil, dosyanın ilk baytlarına bakılarak belirlenir (JPG / PNG / WEBP / GIF); dosya adı S3 anahtarında kullanılmaz (`posts/<uuid>.<uzantı>`). İçerik kaydedilirken her yeni anahtarın biçimi kontrol edilir ve S3'te gerçekten var olduğu doğrulanır; boyut ve tür istemciden değil S3'ten okunur. AWS bilgileri sadece sunucudadır.
+- **API token'ları sayfada yok:** Demo hesapların token'ları giriş sayfasında ya da kaynak kodda yazmaz; her ziyaretçi kendi token'ını Profilim'den oluşturur.
 - **Gizli bilgiler:** `.env` repoya eklenmez; sadece `.env.example` var.
+
+---
+
+## Tasarım tercihleri
+
+- **Alan modeli ajans iş akışına göre:** İçerik (`Post`) müşteriye teslim edilecek iştir. Bir hesap yöneticisinin her gün sorduğu soruları cevaplamak için türü, teslim günü ve sorumlusu var: "Ne gecikti, kimde, bu hafta ne teslim edilecek?" Dashboard'ın ilk satırı bu yüzden geciken ve yaklaşan işler.
+- **Tür ve kanal ayrı alanlar:** Tür içeriğin ne olduğunu (gönderi, blog yazısı, web sayfası), kanal nerede yayınlanacağını söyler. Aynı gönderi çoğu zaman birkaç kanala birden hazırlandığı için kanal çoklu seçimdir; blog yazısı da LinkedIn'de paylaşılabildiği için kanallar türe göre kısıtlanmaz.
+- **Yayın zamanı ile teslim tarihi ayrı:** Teslim tarihi içeriğin müşteriye hazır olması gereken gündür (gün bazında, gecikme bunun üzerinden hesaplanır). Yayın zamanı içeriğin kanalda paylaşılacağı tarih ve saattir; ajanda bunun üzerine kurulu. Ayrı bir randevu modeli eklemek yerine ajanda doğrudan içerikleri gösteriyor, çünkü hesap yöneticisinin takvimi zaten yayın planı.
+- **Gecikme kuralı:** Teslim günü bugünden önce olan ve durumu `Yayında` olmayan içerik gecikmiştir. Teslim tarihi saat değil gün olarak tutulur (sunucu saat diliminde günün başlangıcı); "bugün teslim" henüz gecikme sayılmaz.
+- **Sorumlu = sistem kullanıcısı:** Ayrı bir "ekip üyesi" modeli yerine mevcut `User` kullanıldı; istemciye sadece `PublicUserDto` alanları gider. Silinen bir kullanıcıya atanmış içerikler "sorumlu yok" olarak görünür.
+- **Görseller sunucu üzerinden yükleniyor:** Gerekçesi yukarıda, [Görseller (S3)](#görseller-s3) bölümünde.
+- **Adresler `/blogs` olarak kaldı:** Arayüzdeki bütün metinler "İçerik" oldu. URL'leri değiştirmek paylaşılmış linkleri ve API'yi bozacağı için adresler aynı bırakıldı.
+- **Demo API token'ları yayınlanmıyor:** Önceden giriş sayfasında yazıyordu. Artık her ziyaretçi kendi token'ını oluşturuyor; demo hesaplarda şifre ve oturumlar kilitli olduğu için kimse panelden dışarıda kalmıyor.
+
 

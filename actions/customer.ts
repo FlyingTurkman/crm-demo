@@ -60,7 +60,7 @@ const getCustomersSchema = z.object({
         .trim()
         .max(maxSearchLength, `Arama metni en fazla ${maxSearchLength} karakter olabilir`)
         .optional(),
-    postStatus: z.enum(PostStatus, 'Geçersiz blog durumu').optional(),
+    postStatus: z.enum(PostStatus, 'Geçersiz içerik durumu').optional(),
     period: z.enum(createdPeriods, 'Geçersiz tarih aralığı').optional(),
     sort: z.enum(customerSorts, 'Geçersiz sıralama').default('updated'),
     page: z.coerce.number().int().min(1, 'Geçersiz sayfa').default(1),

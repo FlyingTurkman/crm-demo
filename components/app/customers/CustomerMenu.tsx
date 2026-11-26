@@ -19,12 +19,12 @@ export default function CustomerMenu({ customer }: { customer: Customer }) {
     const menus = [
         {
             id: 'blogs',
-            label: 'Bloglar',
+            label: 'İçerikler',
             icon: IoNewspaper,
             count: customer._count?.posts ?? 0,
             items: [
-                { href: `${baseHref}/blogs/add`, label: 'Yeni Blog Ekle', icon: IoAdd },
-                { href: `${baseHref}/blogs`, label: 'Bloglar', icon: IoList },
+                { href: `${baseHref}/blogs/add`, label: 'Yeni İçerik Ekle', icon: IoAdd },
+                { href: `${baseHref}/blogs`, label: 'İçerikler', icon: IoList },
             ],
         },
         {

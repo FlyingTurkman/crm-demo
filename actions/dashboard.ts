@@ -4,9 +4,10 @@ import type { PostStatus } from '@prisma/client'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { authorize } from '@/lib/auth/authorize'
-import { getRangeEndingOn, parseDateParam } from '@/lib/period'
+import { getOverdueWhere, getRangeEndingOn, getUpcomingWhere, parseDateParam } from '@/lib/period'
+import { PublicUserDto } from '@/dtos/userDTO'
 import { createdPeriods, dashboardListLimit } from '@/lib/src/constants'
-import type { Customer, Note, Post, Response } from '@/types'
+import type { Customer, Note, Post, Response, User } from '@/types'
 
 // The dashboard reads every model, so its query lives in its own file instead of a model's
 
@@ -21,12 +22,25 @@ export type DashboardStats = {
     // total: created until the end of the selected day, onDay: created on that day,
     // inPeriod: created in the range that ends with that day
     customers: { total: number, onDay: number, inPeriod: number }
-    posts: { total: number, onDay: number, inPeriod: number, byStatus: Record<PostStatus, number> }
+    // overdue / upcoming are the current state (delivery days aren't tied to the selected day)
+    posts: { total: number, onDay: number, inPeriod: number, byStatus: Record<PostStatus, number>, overdue: number, upcoming: number }
     notes: { total: number, onDay: number, inPeriod: number }
     recentCustomers: Customer[]
     recentPosts: Post[]
     recentNotes: Note[]
     topCustomers: { customer: Customer, postCount: number }[]
+    overduePosts: Post[]
+    upcomingPosts: Post[]
+}
+
+type DuePostRecord = Omit<Post, 'assignee'> & {
+    assignee: (Omit<User, 'password'> & { isDeleted: boolean }) | null
+}
+
+// Only public fields of the responsible user leave the server
+function toDuePost(post: DuePostRecord): Post {
+    const assignee = post.assignee && !post.assignee.isDeleted ? { ...new PublicUserDto(post.assignee) } : null
+    return { ...post, assignee }
 }
 
 type GetDashboardStatsResponse = Response & {
@@ -55,6 +69,9 @@ export async function getDashboardStats(input: z.input<typeof getDashboardStatsS
     // Children of a deleted customer are soft-deleted with it, the relation filter is a safety net
     const postWhere = { isDeleted: false, customer: { isDeleted: false }, ...asOfDay }
     const noteWhere = { isDeleted: false, customer: { isDeleted: false }, ...asOfDay }
+    // Delivery tracking is always the current state, not as of the selected day
+    const openPostWhere = { isDeleted: false, customer: { isDeleted: false } }
+    const dueListInclude = { customer: true, assignee: { omit: { password: true } } } as const
 
     const [
         customerTotal,
@@ -71,6 +88,10 @@ export async function getDashboardStats(input: z.input<typeof getDashboardStatsS
         recentPosts,
         recentNotes,
         topPostGroups,
+        overdueCount,
+        upcomingCount,
+        overduePosts,
+        upcomingPosts,
     ] = await Promise.all([
         prisma.customer.count({ where: customerWhere }),
         prisma.customer.count({ where: { ...customerWhere, ...today } }),
@@ -114,6 +135,21 @@ export async function getDashboardStats(input: z.input<typeof getDashboardStatsS
                 { $limit: dashboardListLimit },
             ],
         }) as unknown as Promise<{ _id: { $oid: string }, postCount: number }[]>,
+        prisma.post.count({ where: { ...openPostWhere, ...getOverdueWhere() } }),
+        prisma.post.count({ where: { ...openPostWhere, ...getUpcomingWhere() } }),
+        // The longest overdue first
+        prisma.post.findMany({
+            where: { ...openPostWhere, ...getOverdueWhere() },
+            orderBy: { dueDate: 'asc' },
+            take: dashboardListLimit,
+            include: dueListInclude,
+        }),
+        prisma.post.findMany({
+            where: { ...openPostWhere, ...getUpcomingWhere() },
+            orderBy: { dueDate: 'asc' },
+            take: dashboardListLimit,
+            include: dueListInclude,
+        }),
     ])
     const postGroups = topPostGroups.map((group) => ({
         customerId: group._id.$oid,
@@ -149,12 +185,14 @@ export async function getDashboardStats(input: z.input<typeof getDashboardStatsS
         status: true,
         stats: {
             customers: { total: customerTotal, onDay: customerToday, inPeriod: customerInPeriod },
-            posts: { total: postTotal, onDay: postToday, inPeriod: postInPeriod, byStatus },
+            posts: { total: postTotal, onDay: postToday, inPeriod: postInPeriod, byStatus, overdue: overdueCount, upcoming: upcomingCount },
             notes: { total: noteTotal, onDay: noteToday, inPeriod: noteInPeriod },
             recentCustomers,
             recentPosts,
             recentNotes,
             topCustomers,
+            overduePosts: overduePosts.map((post) => toDuePost(post)),
+            upcomingPosts: upcomingPosts.map((post) => toDuePost(post)),
         },
     }
 }

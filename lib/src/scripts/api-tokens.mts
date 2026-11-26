@@ -1,10 +1,9 @@
-// Gives every user a REST API token: npm run api:tokens
-// - Demo accounts get their fixed, published token from constants.ts
-// - Other users without an active token get a new random one, printed once
-// Users that already have a token keep it (add --force to regenerate all non-demo tokens).
+// Gives every user without an active REST API token a new random one: npm run api:tokens
+// Each new token is printed once (only its hash is stored). Users that already have a token
+// keep it (add --force to regenerate all tokens). Demo visitors create theirs on the profile page.
 import { createHash, randomBytes } from 'node:crypto'
 import { PrismaClient } from '@prisma/client'
-import { apiTokenPrefix, demoAccounts } from '../constants.ts'
+import { apiTokenPrefix } from '../constants.ts'
 
 const prisma = new PrismaClient()
 const force = process.argv.includes('--force')
@@ -42,21 +41,6 @@ async function main() {
     })
 
     for (const user of users) {
-        const demo = demoAccounts.find(function (account) {
-            return account.email === user.email
-        })
-
-        if (demo) {
-            const hasDemoToken = user.apiTokens.some(function (apiToken) {
-                return apiToken.tokenHash === hashToken(demo.apiToken)
-            })
-            if (!hasDemoToken) {
-                await setToken(user.id, demo.apiToken)
-            }
-            console.log(`${user.email}: ${demo.apiToken} (demo)`)
-            continue
-        }
-
         if (user.apiTokens.length > 0 && !force) {
             console.log(`${user.email}: zaten bir token var (yenilemek için --force)`)
             continue

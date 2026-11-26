@@ -21,7 +21,7 @@ export default function CustomerPageClient({
     ]
     const stats = [
         { id: 'notes', label: 'Not', value: customer._count?.notes ?? 0 },
-        { id: 'posts', label: 'Blog', value: customer._count?.posts ?? 0 },
+        { id: 'posts', label: 'İçerik', value: customer._count?.posts ?? 0 },
     ]
 
     return (
@@ -54,7 +54,7 @@ export default function CustomerPageClient({
 
                 <Card className='sm:col-span-2'>
                     <CardHeader>
-                        <CardTitle>Blog Durumları</CardTitle>
+                        <CardTitle>İçerik Durumları</CardTitle>
                     </CardHeader>
                     <CardContent>
                         <PostStatusChart customerId={customer.id} postStatusCounts={postStatusCounts} />

@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
+import { getPostAssignees } from '@/actions/post'
 import { getPostCached, getPostPageTitle } from '@/lib/data'
 import EditBlogPageClient from './page.client'
 
@@ -16,7 +17,7 @@ export default async function Page({
     params: Params
 }) {
     const { customerId, postId } = await params
-    const result = await getPostCached(postId)
+    const [result, assignees] = await Promise.all([getPostCached(postId), getPostAssignees()])
 
     // A post of another customer must not open under this customer's URL
     if (!result.post || result.post.customerId !== customerId) {
@@ -24,6 +25,6 @@ export default async function Page({
     }
 
     return (
-        <EditBlogPageClient post={result.post} />
+        <EditBlogPageClient post={result.post} users={assignees.users ?? []} />
     )
 }

@@ -9,7 +9,7 @@ export default function CustomerActionsMenu({ customer }: { customer: Customer }
         <EditDeleteMenu
             editLabel='Bilgileri Düzenle'
             editHref={`/app/customers/${customer.id}/edit`}
-            deleteDescription={`${customer.fullName} adlı müşteri, notları ve blogları ile birlikte silinecek.`}
+            deleteDescription={`${customer.fullName} adlı müşteri, notları ve içerikleri ile birlikte silinecek.`}
             deletePermission='customer:delete'
             onDelete={handleDelete}
         />

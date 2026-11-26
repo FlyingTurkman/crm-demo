@@ -14,7 +14,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Card, CardContent } from '@/components/ui/card'
 import { formatDate } from '@/lib/format'
 
-const demoLockedReason = 'Bu bir demo hesabı: herkes kullanabilsin diye şifresi, API token\'ı ve oturumları değiştirilemez.'
+const demoLockedReason = 'Bu bir demo hesabı: herkes kullanabilsin diye şifresi ve oturumları değiştirilemez.'
 
 export default function ProfilePageClient({
     profile,
@@ -68,7 +68,6 @@ export default function ProfilePageClient({
                     className='max-w-none'
                     apiToken={profile.apiToken}
                     onRegenerate={regenerateMyApiToken}
-                    lockedReason={lockedReason}
                 />
                 <SessionsCard otherSessionCount={otherSessionCount} lockedReason={lockedReason} onClosed={handleSessionsClosed} />
             </div>

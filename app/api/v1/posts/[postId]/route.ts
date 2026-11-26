@@ -1,6 +1,7 @@
 import type { NextRequest } from 'next/server'
 import { deletePost, getPost, updatePost, updatePostStatus } from '@/actions/post'
 import { apiResult, invalidBodyError, readJsonBody, requireApiToken, withRichText } from '@/lib/api'
+import { toDateParam, toDateTimeValue } from '@/lib/period'
 
 type Context = { params: Promise<{ postId: string }> }
 type UpdatePostInput = Parameters<typeof updatePost>[0]
@@ -36,6 +37,12 @@ export async function PATCH(request: NextRequest, { params }: Context) {
     const result = await updatePost({
         title: post.title,
         status: post.status,
+        type: post.type,
+        platforms: post.platforms,
+        dueDate: post.dueDate ? toDateParam(new Date(post.dueDate)) : '',
+        scheduledAt: post.scheduledAt ? toDateTimeValue(new Date(post.scheduledAt)) : '',
+        assigneeId: post.assigneeId ?? '',
+        images: post.images.map((image) => ({ key: image.key, name: image.name })),
         content: post.content,
         rawContent: post.rawContent,
         ...withRichText(body),

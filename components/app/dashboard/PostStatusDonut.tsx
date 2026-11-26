@@ -11,7 +11,7 @@ const postStatuses: PostStatus[] = ['draft', 'inReview', 'published']
 
 // Colors come from the --status-* tokens in globals.css (light and dark steps)
 const chartConfig = {
-    count: { label: 'Blog' },
+    count: { label: 'İçerik' },
     draft: { label: postStatusLabels.draft, color: 'var(--status-draft)' },
     inReview: { label: postStatusLabels.inReview, color: 'var(--status-in-review)' },
     published: { label: postStatusLabels.published, color: 'var(--status-published)' },
@@ -31,7 +31,7 @@ export default function PostStatusDonut({ byStatus }: { byStatus: Record<PostSta
 
     if (total === 0) {
         return (
-            <p className='py-8 text-center text-sm text-muted-foreground'>Henüz blog yok</p>
+            <p className='py-8 text-center text-sm text-muted-foreground'>Henüz içerik yok</p>
         )
     }
 
@@ -98,7 +98,7 @@ export default function PostStatusDonut({ byStatus }: { byStatus: Record<PostSta
                     {total}
                 </tspan>
                 <tspan x={viewBox.cx} y={viewBox.cy + 16} className='fill-muted-foreground text-xs'>
-                    blog
+                    içerik
                 </tspan>
             </text>
         )

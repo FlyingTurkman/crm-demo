@@ -12,7 +12,7 @@ const postStatuses: PostStatus[] = ['draft', 'inReview', 'published']
 
 const chartConfig = {
     count: {
-        label: 'Blog',
+        label: 'İçerik',
         // Neutral theme's --chart-1 is a light gray; primary keeps the bars readable in light and dark mode
         color: 'var(--primary)',
     },
@@ -36,9 +36,9 @@ export default function PostStatusChart({
     if (total === 0) {
         return (
             <div className='flex flex-col items-center gap-3 py-8'>
-                <p className='text-sm text-muted-foreground'>Bu müşterinin henüz blogu yok</p>
+                <p className='text-sm text-muted-foreground'>Bu müşterinin henüz içeriği yok</p>
                 <Link href={`/app/customers/${customerId}/blogs/add`} className={buttonVariants({ variant: 'link' })}>
-                    <IoAdd /> Yeni Blog Ekle
+                    <IoAdd /> Yeni İçerik Ekle
                 </Link>
             </div>
         )

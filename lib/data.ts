@@ -25,7 +25,7 @@ export const getUserCached = cache(async function (userId: string) {
     return getUser({ userId })
 })
 
-// Page titles for generateMetadata, e.g. 'Ahmet Yılmaz - Bloglar'
+// Page titles for generateMetadata, e.g. 'Ahmet Yılmaz - İçerikler'
 export async function getCustomerPageTitle(customerId: string, section?: string) {
     const result = await getCustomerCached(customerId)
     if (!result.customer) {
@@ -45,7 +45,7 @@ export async function getUserPageTitle(userId: string, section?: string) {
 export async function getPostPageTitle(postId: string, section?: string) {
     const result = await getPostCached(postId)
     if (!result.post) {
-        return 'Blog bulunamadı'
+        return 'İçerik bulunamadı'
     }
     return section ? `${result.post.title} - ${section}` : result.post.title
 }

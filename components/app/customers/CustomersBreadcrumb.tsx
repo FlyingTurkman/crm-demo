@@ -50,10 +50,10 @@ function getCrumbs(pathname: string, labels: Record<string, string>): Crumb[] {
 
     if (section === 'blogs') {
         const blogsHref = `${customerHref}/blogs`
-        crumbs.push({ href: blogsHref, label: 'Bloglar' })
+        crumbs.push({ href: blogsHref, label: 'İçerikler' })
 
         if (itemId === 'add') {
-            crumbs.push({ href: `${blogsHref}/add`, label: 'Yeni Blog' })
+            crumbs.push({ href: `${blogsHref}/add`, label: 'Yeni İçerik' })
         } else if (itemId) {
             crumbs.push({ href: `${blogsHref}/${itemId}`, label: labels[itemId] ?? null })
             if (action === 'edit') {

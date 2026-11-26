@@ -19,8 +19,8 @@ import {
 import type { Customer, Post } from '@/types'
 
 const sidebarItems = [
-    { href: '/app/blogs', label: 'Blog Listesi', icon: IoList },
-    { href: '/app/blogs/add', label: 'Yeni Blog', icon: IoAdd },
+    { href: '/app/blogs', label: 'İçerik Listesi', icon: IoList },
+    { href: '/app/blogs/add', label: 'Yeni İçerik', icon: IoAdd },
 ]
 
 export default function BlogsSidebar({ posts }: { posts: Post[] }) {
@@ -32,18 +32,18 @@ export default function BlogsSidebar({ posts }: { posts: Post[] }) {
             <SidebarHeader>
                 <SidebarMenu>
                     <SidebarMenuItem>
-                        <SidebarMenuButton size='lg' tooltip='Bloglar' render={<Link href='/app/blogs' />}>
+                        <SidebarMenuButton size='lg' tooltip='İçerikler' render={<Link href='/app/blogs' />}>
                             <div className='flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground'>
                                 <IoNewspaper />
                             </div>
-                            <span className='font-semibold'>Bloglar</span>
+                            <span className='font-semibold'>İçerikler</span>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
                 </SidebarMenu>
             </SidebarHeader>
             <SidebarContent>
                 <SidebarGroup>
-                    <SidebarGroupLabel>Blog İşlemleri</SidebarGroupLabel>
+                    <SidebarGroupLabel>İçerik İşlemleri</SidebarGroupLabel>
                     <SidebarGroupContent>
                         <SidebarMenu>
                             {sidebarItems.map((item) => (
@@ -67,7 +67,7 @@ export default function BlogsSidebar({ posts }: { posts: Post[] }) {
                         <SidebarMenu>
                             {posts.length === 0 && (
                                 <p className='px-2 py-1 text-xs text-muted-foreground group-data-[collapsible=icon]:hidden'>
-                                    Henüz blog yok
+                                    Henüz içerik yok
                                 </p>
                             )}
                             {posts.map((post) => (

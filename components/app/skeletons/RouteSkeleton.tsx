@@ -2,6 +2,7 @@
 
 import type { ReactNode } from 'react'
 import { usePathname } from 'next/navigation'
+import AgendaSkeleton from '@/components/app/skeletons/AgendaSkeleton'
 import CustomerHeaderSkeleton from '@/components/app/skeletons/CustomerHeaderSkeleton'
 import CustomerOverviewSkeleton from '@/components/app/skeletons/CustomerOverviewSkeleton'
 import DashboardSkeleton from '@/components/app/skeletons/DashboardSkeleton'
@@ -56,6 +57,9 @@ function getPageSkeleton(segments: string[]): ReactNode {
     }
     if (section === 'profile') {
         return <ProfileSkeleton />
+    }
+    if (section === 'agenda') {
+        return <AgendaSkeleton />
     }
 
     // /app/customers/<customerId>/** render inside the customer layout (it has its own padding)

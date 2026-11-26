@@ -2,18 +2,32 @@
 
 import { useTransition } from 'react'
 import Link from 'next/link'
-import type { PostStatus } from '@prisma/client'
-import { IoAdd } from 'react-icons/io5'
+import type { PostPlatform, PostStatus, PostType } from '@prisma/client'
+import { IoAdd, IoPerson } from 'react-icons/io5'
 import { deletePost } from '@/actions/post'
 import EditDeleteMenu from '@/components/app/common/EditDeleteMenu'
 import ListFilters from '@/components/app/common/ListFilters'
 import ListPagination from '@/components/app/common/ListPagination'
+import PostDueBadge from '@/components/app/posts/PostDueBadge'
 import PostStatusSelect from '@/components/app/posts/PostStatusSelect'
+import PostTypeBadge from '@/components/app/posts/PostTypeBadge'
+import PostPlatformBadges from '@/components/app/posts/PostPlatformBadges'
 import { buttonVariants } from '@/components/ui/button'
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { formatDate } from '@/lib/format'
-import { createdPeriodLabels, pageLimit, postSortLabels, postSorts, postStatusLabels } from '@/lib/src/constants'
-import type { CreatedPeriod } from '@/lib/period'
+import {
+    createdPeriodLabels,
+    pageLimit,
+    postAssigneeFilterLabels,
+    postAssigneeFilters,
+    postDueFilterLabels,
+    postPlatformLabels,
+    postSortLabels,
+    postSorts,
+    postStatusLabels,
+    postTypeLabels,
+} from '@/lib/src/constants'
+import type { CreatedPeriod, PostDueFilter } from '@/lib/period'
 import { cn } from '@/lib/utils'
 import type { Post } from '@/types'
 
@@ -21,12 +35,26 @@ type CustomerBlogListFilters = {
     query: string
     period?: CreatedPeriod
     status?: PostStatus
+    type?: PostType
+    platform?: PostPlatform
+    due?: PostDueFilter
+    assignee?: (typeof postAssigneeFilters)[number]
     sort: (typeof postSorts)[number]
 }
 
 const statusFilterLabels: Record<string, string> = {
     all: 'Tüm durumlar',
     ...postStatusLabels,
+}
+
+const typeFilterLabels: Record<string, string> = {
+    all: 'Tüm türler',
+    ...postTypeLabels,
+}
+
+const platformFilterLabels: Record<string, string> = {
+    all: 'Tüm kanallar',
+    ...postPlatformLabels,
 }
 
 export default function CustomerBlogsPageClient({
@@ -47,7 +75,7 @@ export default function CustomerBlogsPageClient({
     // Shared by filters and pagination: dims the list while the next page loads
     const [isPending, startTransition] = useTransition()
     const baseHref = `/app/customers/${customerId}/blogs`
-    const hasFilters = Boolean(filters.query || filters.status || filters.period)
+    const hasFilters = Boolean(filters.query || filters.status || filters.type || filters.platform || filters.due || filters.assignee || filters.period)
     const firstIndex = total === 0 ? 0 : (page - 1) * pageLimit + 1
     const lastIndex = Math.min(page * pageLimit, total)
 
@@ -55,10 +83,10 @@ export default function CustomerBlogsPageClient({
         <div className='flex flex-col gap-4'>
             <div className='flex flex-row items-center justify-between gap-2'>
                 <p className='text-sm text-muted-foreground'>
-                    {total === 0 ? 'Gösterilecek blog yok' : `${total} blogdan ${firstIndex}-${lastIndex} arası gösteriliyor`}
+                    {total === 0 ? 'Gösterilecek içerik yok' : `${total} içerikten ${firstIndex}-${lastIndex} arası gösteriliyor`}
                 </p>
                 <Link href={`${baseHref}/add`} className={buttonVariants()}>
-                    <IoAdd /> Yeni Blog Ekle
+                    <IoAdd /> Yeni İçerik Ekle
                 </Link>
             </div>
 
@@ -73,6 +101,38 @@ export default function CustomerBlogsPageClient({
                         items: statusFilterLabels,
                         label: 'Duruma göre filtrele',
                         className: 'lg:w-44',
+                    },
+                    {
+                        param: 'type',
+                        value: filters.type ?? 'all',
+                        defaultValue: 'all',
+                        items: typeFilterLabels,
+                        label: 'Türe göre filtrele',
+                        className: 'lg:w-44',
+                    },
+                    {
+                        param: 'platform',
+                        value: filters.platform ?? 'all',
+                        defaultValue: 'all',
+                        items: platformFilterLabels,
+                        label: 'Kanala göre filtrele',
+                        className: 'lg:w-44',
+                    },
+                    {
+                        param: 'due',
+                        value: filters.due ?? 'all',
+                        defaultValue: 'all',
+                        items: postDueFilterLabels,
+                        label: 'Teslim tarihine göre filtrele',
+                        className: 'lg:w-52',
+                    },
+                    {
+                        param: 'assignee',
+                        value: filters.assignee ?? 'all',
+                        defaultValue: 'all',
+                        items: postAssigneeFilterLabels,
+                        label: 'Sorumluya göre filtrele',
+                        className: 'lg:w-48',
                     },
                     {
                         param: 'period',
@@ -97,7 +157,7 @@ export default function CustomerBlogsPageClient({
 
             {posts.length === 0 && (
                 <p className='py-8 text-center text-sm text-muted-foreground'>
-                    {hasFilters ? 'Filtrelere uyan blog bulunamadı' : 'Bu müşterinin henüz blogu yok'}
+                    {hasFilters ? 'Filtrelere uyan içerik bulunamadı' : 'Bu müşterinin henüz içeriği yok'}
                 </p>
             )}
 
@@ -109,14 +169,22 @@ export default function CustomerBlogsPageClient({
                                 {post.title}
                             </Link>
                         </CardTitle>
-                        <CardDescription>Son güncelleme: {formatDate(post.updatedAt)}</CardDescription>
+                        <CardDescription className='flex flex-wrap items-center gap-2'>
+                            <PostTypeBadge type={post.type} />
+                            <PostPlatformBadges platforms={post.platforms} compact />
+                            <PostDueBadge dueDate={post.dueDate} status={post.status} />
+                            <span className='flex items-center gap-1'>
+                                <IoPerson aria-hidden /> {post.assignee?.fullName ?? 'Atanmadı'}
+                            </span>
+                            <span>· Son güncelleme: {formatDate(post.updatedAt)}</span>
+                        </CardDescription>
                         <CardAction className='flex flex-col items-end gap-2 sm:flex-row'>
                             <PostStatusSelect postId={post.id} status={post.status} />
                             <EditDeleteMenu
                                 size='sm'
-                                editLabel='Blogu Düzenle'
+                                editLabel='İçeriği Düzenle'
                                 editHref={`${baseHref}/${post.id}/edit`}
-                                deleteDescription={`"${post.title}" başlıklı blog silinecek.`}
+                                deleteDescription={`"${post.title}" başlıklı içerik silinecek.`}
                                 deletePermission='post:delete'
                                 onDelete={function () {
                                     return deletePost({ postId: post.id })

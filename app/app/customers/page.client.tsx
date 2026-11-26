@@ -24,9 +24,9 @@ type CustomerListFilters = {
 
 const postStatusFilterLabels: Record<string, string> = {
     all: 'Tüm müşteriler',
-    draft: `${postStatusLabels.draft} blogu olanlar`,
-    inReview: `${postStatusLabels.inReview} blogu olanlar`,
-    published: `${postStatusLabels.published} blogu olanlar`,
+    draft: `${postStatusLabels.draft} içeriği olanlar`,
+    inReview: `${postStatusLabels.inReview} içeriği olanlar`,
+    published: `${postStatusLabels.published} içeriği olanlar`,
 }
 
 export default function CustomersPageClient({
@@ -73,7 +73,7 @@ export default function CustomersPageClient({
                         value: filters.postStatus ?? 'all',
                         defaultValue: 'all',
                         items: postStatusFilterLabels,
-                        label: 'Blog durumuna göre filtrele',
+                        label: 'İçerik durumuna göre filtrele',
                     },
                     {
                         param: 'period',
@@ -108,7 +108,7 @@ export default function CustomersPageClient({
                             <TableHead>Email</TableHead>
                             <TableHead className='hidden md:table-cell'>Telefon</TableHead>
                             <TableHead className='hidden lg:table-cell'>Firma</TableHead>
-                            <TableHead className='text-right'>Blog</TableHead>
+                            <TableHead className='text-right'>İçerik</TableHead>
                             <TableHead className='text-right'>Not</TableHead>
                             <TableHead className='hidden md:table-cell'>Son Güncelleme</TableHead>
                         </TableRow>

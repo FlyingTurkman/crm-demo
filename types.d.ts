@@ -3,10 +3,12 @@ import type {
     Customer as CustomerDB,
     Note as NoteDB,
     Post as PostDB,
+    PostImage as PostImageDB,
     User as UserDB,
     Session as SessionDB,
     ApiToken as ApiTokenDB,
 } from '@prisma/client'
+import type { PublicUserDto } from '@/dtos/userDTO'
 
 
 // Global backend response type
@@ -29,7 +31,12 @@ export type Note = Omit<NoteDB, 'searchText'> & {
 
 export type Post = Omit<PostDB, 'searchText'> & {
     customer?: Customer
+    // Only public fields of the responsible user (PublicUserDto)
+    assignee?: PublicUserDto | null
 }
+
+// Image of a post (S3 object, URL from getImageUrl in lib/images.ts)
+export type PostImage = PostImageDB
 
 export type User = Omit<UserDB, 'searchText'> & {
     sessions?: Session[]

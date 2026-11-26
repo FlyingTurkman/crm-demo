@@ -16,7 +16,7 @@ import type { Response } from '@/types'
 // The logged-in user's own account (/app/profile). Every action works on auth.user.id only,
 // so a user can never change someone else's account from here.
 
-const demoLockedMessage = 'Demo hesabında şifre, API token ve oturumlar değiştirilemez'
+const demoLockedMessage = 'Demo hesabında şifre ve oturumlar değiştirilemez'
 
 const updateProfileSchema = z.object({
     name: z
@@ -41,7 +41,7 @@ const changePasswordSchema = z.object({
 
 export type Profile = {
     user: UserDto
-    // Password and API token are locked on the published demo accounts
+    // Password and other sessions are locked on the published demo accounts
     isDemo: boolean
     apiToken: ApiTokenInfo | null
     // Active sessions on other devices / browsers
@@ -228,10 +228,9 @@ export async function regenerateMyApiToken(): Promise<RegenerateMyApiTokenRespon
     if (!user) {
         return { status: false, message: 'Kullanıcı bulunamadı' }
     }
-    if (isDemoAccountEmail(user.email)) {
-        return { status: false, message: demoLockedMessage }
-    }
-
+    // Demo accounts may create a token too: API tokens are never published, so this is the only
+    // way a visitor gets one. It replaces the previous visitor's token, but never locks anyone
+    // out of the panel (password and sessions stay locked).
     const token = await issueApiToken(user.id)
 
     revalidatePath('/app/profile')

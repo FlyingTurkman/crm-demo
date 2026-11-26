@@ -91,7 +91,7 @@ export default function GlobalSearch() {
             onOpenChange={setOpen}
             title='Ara'
             triggerId='main-menu-search-trigger'
-            triggerLabel='Müşteri, blog ve notlarda ara'
+            triggerLabel='Müşteri, içerik ve notlarda ara'
             // Mobile: icon button, desktop: a search field look-alike with the shortcut.
             // Page background color, like an input on the primary bar.
             triggerClassName={cn(
@@ -114,7 +114,7 @@ export default function GlobalSearch() {
         >
             <Command shouldFilter={false}>
                 <CommandInput
-                    placeholder='Müşteri, blog veya not ara...'
+                    placeholder='Müşteri, içerik veya not ara...'
                     value={query}
                     onValueChange={handleQueryChange}
                 />
@@ -126,7 +126,7 @@ export default function GlobalSearch() {
                     )}
                     {!isLoading && !trimmedQuery && (
                         <p className='py-6 text-center text-sm text-muted-foreground'>
-                            Müşteri, blog ve notlarda aramak için yazın
+                            Müşteri, içerik ve notlarda aramak için yazın
                         </p>
                     )}
                     {!isLoading && trimmedQuery && !hasResults && (
@@ -159,7 +159,7 @@ export default function GlobalSearch() {
                     {!isLoading && trimmedQuery && results.posts.length > 0 && (
                         <>
                             {results.customers.length > 0 && <CommandSeparator />}
-                            <CommandGroup heading='Bloglar'>
+                            <CommandGroup heading='İçerikler'>
                                 {results.posts.map((post) => (
                                     <CommandItem
                                         key={post.id}
@@ -175,7 +175,7 @@ export default function GlobalSearch() {
                                         </div>
                                     </CommandItem>
                                 ))}
-                                <ShowAllItem href={`/app/blogs?q=${encodedQuery}`} label='Tüm blog sonuçları' onSelect={handleSelect} />
+                                <ShowAllItem href={`/app/blogs?q=${encodedQuery}`} label='Tüm içerik sonuçları' onSelect={handleSelect} />
                             </CommandGroup>
                         </>
                     )}

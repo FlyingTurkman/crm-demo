@@ -49,9 +49,9 @@ export default function BlogSearchBar() {
             modal
             open={open}
             onOpenChange={setOpen}
-            title='Blog ara'
+            title='İçerik ara'
             triggerClassName={buttonVariants({ variant: 'secondary' })}
-            trigger={<>Blog ara <IoSearch /></>}
+            trigger={<>İçerik ara <IoSearch /></>}
             contentClassName='w-80 max-w-[calc(100vw-2rem)] p-0'
         >
             <Command shouldFilter={false}>
@@ -67,7 +67,7 @@ export default function BlogSearchBar() {
                         </div>
                     )}
                     {!isLoading && trimmedQuery && (
-                        <CommandEmpty>Blog bulunamadı</CommandEmpty>
+                        <CommandEmpty>İçerik bulunamadı</CommandEmpty>
                     )}
                     {!isLoading && trimmedQuery && posts.map((post) => (
                         <CommandItem

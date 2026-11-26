@@ -2,16 +2,28 @@
 
 import { useTransition } from 'react'
 import Link from 'next/link'
-import type { PostStatus } from '@prisma/client'
+import type { PostPlatform, PostStatus, PostType } from '@prisma/client'
 import { IoAdd } from 'react-icons/io5'
 import ListFilters from '@/components/app/common/ListFilters'
 import ListPagination from '@/components/app/common/ListPagination'
+import PostDueBadge from '@/components/app/posts/PostDueBadge'
+import PostPlatformBadges from '@/components/app/posts/PostPlatformBadges'
 import PostStatusSelect from '@/components/app/posts/PostStatusSelect'
 import { buttonVariants } from '@/components/ui/button'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { formatDate } from '@/lib/format'
-import { createdPeriodLabels, pageLimit, postSortLabels, postSorts, postStatusLabels } from '@/lib/src/constants'
-import type { CreatedPeriod } from '@/lib/period'
+import {
+    createdPeriodLabels,
+    pageLimit,
+    postAssigneeFilterLabels,
+    postAssigneeFilters,
+    postDueFilterLabels,
+    postPlatformLabels,
+    postSortLabels,
+    postSorts,
+    postStatusLabels,
+    postTypeLabels,
+} from '@/lib/src/constants'
+import type { CreatedPeriod, PostDueFilter } from '@/lib/period'
 import { cn } from '@/lib/utils'
 import type { Post } from '@/types'
 
@@ -19,12 +31,26 @@ type BlogListFilters = {
     query: string
     period?: CreatedPeriod
     status?: PostStatus
+    type?: PostType
+    platform?: PostPlatform
+    due?: PostDueFilter
+    assignee?: (typeof postAssigneeFilters)[number]
     sort: (typeof postSorts)[number]
 }
 
 const statusFilterLabels: Record<string, string> = {
     all: 'Tüm durumlar',
     ...postStatusLabels,
+}
+
+const typeFilterLabels: Record<string, string> = {
+    all: 'Tüm türler',
+    ...postTypeLabels,
+}
+
+const platformFilterLabels: Record<string, string> = {
+    all: 'Tüm kanallar',
+    ...postPlatformLabels,
 }
 
 export default function BlogsPageClient({
@@ -44,7 +70,7 @@ export default function BlogsPageClient({
 }) {
     // Shared by filters and pagination: dims the table while the next page loads
     const [isPending, startTransition] = useTransition()
-    const hasFilters = Boolean(filters.query || filters.status || filters.period)
+    const hasFilters = Boolean(filters.query || filters.status || filters.type || filters.platform || filters.due || filters.assignee || filters.period)
     const firstIndex = total === 0 ? 0 : (page - 1) * pageLimit + 1
     const lastIndex = Math.min(page * pageLimit, total)
 
@@ -52,13 +78,13 @@ export default function BlogsPageClient({
         <div className='flex flex-col gap-4 p-4'>
             <div className='flex flex-row items-center justify-between gap-2'>
                 <div className='min-w-0'>
-                    <h1 className='text-2xl font-semibold'>Bloglar</h1>
+                    <h1 className='text-2xl font-semibold'>İçerikler</h1>
                     <p className='text-sm text-muted-foreground'>
-                        {total === 0 ? 'Gösterilecek blog yok' : `${total} blogdan ${firstIndex}-${lastIndex} arası gösteriliyor`}
+                        {total === 0 ? 'Gösterilecek içerik yok' : `${total} içerikten ${firstIndex}-${lastIndex} arası gösteriliyor`}
                     </p>
                 </div>
                 <Link href='/app/blogs/add' className={cn(buttonVariants(), 'shrink-0')}>
-                    <IoAdd /> Yeni Blog
+                    <IoAdd /> Yeni İçerik
                 </Link>
             </div>
 
@@ -73,6 +99,38 @@ export default function BlogsPageClient({
                         items: statusFilterLabels,
                         label: 'Duruma göre filtrele',
                         className: 'lg:w-44',
+                    },
+                    {
+                        param: 'type',
+                        value: filters.type ?? 'all',
+                        defaultValue: 'all',
+                        items: typeFilterLabels,
+                        label: 'Türe göre filtrele',
+                        className: 'lg:w-44',
+                    },
+                    {
+                        param: 'platform',
+                        value: filters.platform ?? 'all',
+                        defaultValue: 'all',
+                        items: platformFilterLabels,
+                        label: 'Kanala göre filtrele',
+                        className: 'lg:w-44',
+                    },
+                    {
+                        param: 'due',
+                        value: filters.due ?? 'all',
+                        defaultValue: 'all',
+                        items: postDueFilterLabels,
+                        label: 'Teslim tarihine göre filtrele',
+                        className: 'lg:w-52',
+                    },
+                    {
+                        param: 'assignee',
+                        value: filters.assignee ?? 'all',
+                        defaultValue: 'all',
+                        items: postAssigneeFilterLabels,
+                        label: 'Sorumluya göre filtrele',
+                        className: 'lg:w-48',
                     },
                     {
                         param: 'period',
@@ -105,15 +163,17 @@ export default function BlogsPageClient({
                         <TableRow>
                             <TableHead>Başlık</TableHead>
                             <TableHead>Müşteri</TableHead>
+                            <TableHead className='hidden sm:table-cell'>Tür / Kanal</TableHead>
                             <TableHead>Durum</TableHead>
-                            <TableHead className='hidden md:table-cell'>Son Güncelleme</TableHead>
+                            <TableHead className='hidden lg:table-cell'>Sorumlu</TableHead>
+                            <TableHead className='hidden md:table-cell'>Teslim</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
                         {posts.length === 0 && (
                             <TableRow>
-                                <TableCell colSpan={4} className='py-8 text-center text-muted-foreground'>
-                                    {hasFilters ? 'Filtrelere uyan blog bulunamadı' : 'Henüz blog yok'}
+                                <TableCell colSpan={6} className='py-8 text-center text-muted-foreground'>
+                                    {hasFilters ? 'Filtrelere uyan içerik bulunamadı' : 'Henüz içerik yok'}
                                 </TableCell>
                             </TableRow>
                         )}
@@ -133,10 +193,19 @@ export default function BlogsPageClient({
                                         {post.customer?.fullName}
                                     </Link>
                                 </TableCell>
+                                <TableCell className='hidden text-muted-foreground sm:table-cell'>
+                                    <div className='flex flex-col gap-1'>
+                                        <span>{postTypeLabels[post.type]}</span>
+                                        <PostPlatformBadges platforms={post.platforms} compact />
+                                    </div>
+                                </TableCell>
                                 <TableCell>
                                     <PostStatusSelect postId={post.id} status={post.status} />
                                 </TableCell>
-                                <TableCell className='hidden text-muted-foreground md:table-cell'>{formatDate(post.updatedAt)}</TableCell>
+                                <TableCell className='hidden text-muted-foreground lg:table-cell'>{post.assignee?.fullName ?? '—'}</TableCell>
+                                <TableCell className='hidden md:table-cell'>
+                                    <PostDueBadge dueDate={post.dueDate} status={post.status} emptyText='—' />
+                                </TableCell>
                             </TableRow>
                         ))}
                     </TableBody>

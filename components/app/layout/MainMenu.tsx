@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import {
+    IoCalendar,
     IoChevronDown,
     IoDocumentText,
     IoHome,
@@ -39,7 +40,8 @@ const menuItems: { href: string, label: string, icon: typeof IoHome, permission?
     { href: '/app', label: 'Ana Sayfa', icon: IoHome },
     { href: '/app/customers', label: 'Müşteriler', icon: IoPeople },
     { href: '/app/notes', label: 'Notlar', icon: IoDocumentText },
-    { href: '/app/blogs', label: 'Bloglar', icon: IoNewspaper },
+    { href: '/app/blogs', label: 'İçerikler', icon: IoNewspaper },
+    { href: '/app/agenda', label: 'Ajanda', icon: IoCalendar },
     { href: '/app/admin', label: 'Admin Paneli', icon: IoShieldCheckmark, permission: 'user:read' },
 ]
 

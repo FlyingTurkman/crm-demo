@@ -6,7 +6,7 @@ type Context = { params: Promise<{ customerId: string }> }
 type GetPostsInput = Parameters<typeof getPosts>[0]
 type CreatePostInput = Parameters<typeof createPost>[0]
 
-// GET /api/v1/customers/{customerId}/posts?q=&status=&sort=&page=
+// GET /api/v1/customers/{customerId}/posts?q=&status=&type=&platform=&due=&assignee=&period=&sort=&page=
 export async function GET(request: NextRequest, { params }: Context) {
     const unauthorized = requireApiToken(request)
     if (unauthorized) return unauthorized
@@ -16,13 +16,19 @@ export async function GET(request: NextRequest, { params }: Context) {
         customerId,
         query: getQueryParam(request, 'q'),
         status: getQueryParam(request, 'status'),
+        type: getQueryParam(request, 'type'),
+        platform: getQueryParam(request, 'platform'),
+        due: getQueryParam(request, 'due'),
+        assignee: getQueryParam(request, 'assignee'),
+        period: getQueryParam(request, 'period'),
         sort: getQueryParam(request, 'sort'),
         page: getQueryParam(request, 'page'),
     } as GetPostsInput)
     return apiResult(result)
 }
 
-// POST /api/v1/customers/{customerId}/posts  { title, status?, rawContent and / or content }
+// POST /api/v1/customers/{customerId}/posts
+// { title, status?, type?, platforms?, dueDate?, scheduledAt?, assigneeId?, images?, rawContent and / or content }
 export async function POST(request: NextRequest, { params }: Context) {
     const unauthorized = requireApiToken(request)
     if (unauthorized) return unauthorized
@@ -33,8 +39,14 @@ export async function POST(request: NextRequest, { params }: Context) {
     const { customerId } = await params
     const result = await createPost({
         status: 'draft',
+        type: 'blog',
+        platforms: [],
+        dueDate: '',
+        scheduledAt: '',
+        assigneeId: '',
+        images: [],
         ...withRichText(body),
         customerId,
-    } as CreatePostInput)
+    } as unknown as CreatePostInput)
     return apiResult(result, 201)
 }

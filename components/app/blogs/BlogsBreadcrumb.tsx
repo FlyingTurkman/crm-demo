@@ -29,16 +29,16 @@ export default function BlogsBreadcrumb() {
                 <BreadcrumbSeparator />
                 <BreadcrumbItem>
                     {isAddPage ? (
-                        <BreadcrumbLink render={<Link href='/app/blogs' />}>Bloglar</BreadcrumbLink>
+                        <BreadcrumbLink render={<Link href='/app/blogs' />}>İçerikler</BreadcrumbLink>
                     ) : (
-                        <BreadcrumbPage>Bloglar</BreadcrumbPage>
+                        <BreadcrumbPage>İçerikler</BreadcrumbPage>
                     )}
                 </BreadcrumbItem>
                 {isAddPage && (
                     <>
                         <BreadcrumbSeparator />
                         <BreadcrumbItem>
-                            <BreadcrumbPage>Yeni Blog</BreadcrumbPage>
+                            <BreadcrumbPage>Yeni İçerik</BreadcrumbPage>
                         </BreadcrumbItem>
                     </>
                 )}

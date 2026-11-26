@@ -2,10 +2,11 @@
 
 import { useTransition } from 'react'
 import { usePathname } from 'next/navigation'
-import { IoCheckmarkCircle, IoDocumentText, IoNewspaper, IoPeople } from 'react-icons/io5'
+import { IoAlarm, IoCalendarClear, IoCheckmarkCircle, IoDocumentText, IoNewspaper, IoPeople } from 'react-icons/io5'
 import { useSearchQuery } from 'use-search-query'
 import type { DashboardStats } from '@/actions/dashboard'
 import DashboardDatePicker from '@/components/app/dashboard/DashboardDatePicker'
+import DueList from '@/components/app/dashboard/DueList'
 import PostStatusDonut from '@/components/app/dashboard/PostStatusDonut'
 import RecentList from '@/components/app/dashboard/RecentList'
 import StatTile from '@/components/app/dashboard/StatTile'
@@ -14,7 +15,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { formatDate, getNotePreview } from '@/lib/format'
 import { getStartOfToday, parseDateParam, toDateParam, type CreatedPeriod } from '@/lib/period'
-import { createdPeriodLabels, createdPeriods, postStatusLabels } from '@/lib/src/constants'
+import { createdPeriodLabels, createdPeriods, postStatusLabels, upcomingDueDays } from '@/lib/src/constants'
 import { cn } from '@/lib/utils'
 
 export default function AppPageClient({
@@ -73,7 +74,7 @@ export default function AppPageClient({
         },
         {
             id: 'posts',
-            label: 'Toplam blog',
+            label: 'Toplam içerik',
             value: stats.posts.total,
             href: '/app/blogs',
             icon: IoNewspaper,
@@ -81,22 +82,22 @@ export default function AppPageClient({
             noteHref: isToday ? '/app/blogs?period=today' : undefined,
         },
         {
-            id: 'notes',
-            label: 'Toplam not',
-            value: stats.notes.total,
-            href: '/app/notes',
-            icon: IoDocumentText,
-            note: `${dayNoteLabel} +${stats.notes.onDay}`,
-            noteHref: isToday ? '/app/notes?period=today' : undefined,
-        },
-        {
             id: 'published',
-            label: 'Yayındaki blog',
+            label: 'Yayındaki içerik',
             value: stats.posts.byStatus.published,
             href: '/app/blogs?status=published',
             icon: IoCheckmarkCircle,
-            note: `Blogların %${publishedShare} kadarı · ${postStatusLabels.inReview}: ${stats.posts.byStatus.inReview}`,
+            note: `İçeriklerin %${publishedShare} kadarı · ${postStatusLabels.inReview}: ${stats.posts.byStatus.inReview}`,
             noteHref: '/app/blogs?status=inReview',
+        },
+        {
+            id: 'overdue',
+            label: 'Geciken içerik',
+            value: stats.posts.overdue,
+            href: '/app/blogs?due=overdue',
+            icon: IoAlarm,
+            note: `${upcomingDueDays} gün içinde teslim: ${stats.posts.upcoming}`,
+            noteHref: '/app/blogs?due=week',
         },
     ]
 
@@ -107,7 +108,7 @@ export default function AppPageClient({
                 <DashboardDatePicker date={date} isPending={isPending} startTransition={startTransition} />
                 {!isToday && (
                     <p className='text-sm text-muted-foreground'>
-                        Sayılar {dayLabel} gününün sonundaki duruma göre. Blog durumları güncel durumu gösterir.
+                        Sayılar {dayLabel} gününün sonundaki duruma göre. İçerik durumları ve teslim takibi güncel durumu gösterir.
                     </p>
                 )}
             </div>
@@ -128,10 +129,31 @@ export default function AppPageClient({
                 </div>
 
                 <div className='grid gap-4 lg:grid-cols-2'>
+                    <DueList
+                        title='Geciken içerikler'
+                        description='Teslim tarihi geçmiş, henüz yayında olmayan içerikler'
+                        icon={IoAlarm}
+                        count={stats.posts.overdue}
+                        posts={stats.overduePosts}
+                        allHref='/app/blogs?due=overdue'
+                        emptyText='Geciken içerik yok'
+                    />
+                    <DueList
+                        title='Yaklaşan teslimler'
+                        description={`Bugün ve sonraki ${upcomingDueDays} gün içinde teslim edilecekler`}
+                        icon={IoCalendarClear}
+                        count={stats.posts.upcoming}
+                        posts={stats.upcomingPosts}
+                        allHref='/app/blogs?due=week'
+                        emptyText='Yaklaşan teslim yok'
+                    />
+                </div>
+
+                <div className='grid gap-4 lg:grid-cols-2'>
                     <Card>
                         <CardHeader>
-                            <CardTitle>Blog durumları</CardTitle>
-                            <CardDescription>Bir dilime ya da satıra tıklayarak blogları o duruma göre filtreleyin</CardDescription>
+                            <CardTitle>İçerik durumları</CardTitle>
+                            <CardDescription>Bir dilime ya da satıra tıklayarak içerikleri o duruma göre filtreleyin</CardDescription>
                         </CardHeader>
                         <CardContent>
                             <PostStatusDonut byStatus={stats.posts.byStatus} />
@@ -139,8 +161,8 @@ export default function AppPageClient({
                     </Card>
                     <Card>
                         <CardHeader>
-                            <CardTitle>En çok blogu olan müşteriler</CardTitle>
-                            <CardDescription>Müşterinin bloglarını açmak için tıklayın</CardDescription>
+                            <CardTitle>En çok içeriği olan müşteriler</CardTitle>
+                            <CardDescription>Müşterinin içeriklerini açmak için tıklayın</CardDescription>
                         </CardHeader>
                         <CardContent>
                             <TopCustomersList items={stats.topCustomers} />
@@ -181,7 +203,7 @@ export default function AppPageClient({
                             }))}
                         />
                         <RecentList
-                            title='Bloglar'
+                            title='İçerikler'
                             icon={IoNewspaper}
                             count={stats.posts.inPeriod}
                             allHref={isToday ? `/app/blogs?period=${period}` : undefined}

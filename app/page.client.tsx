@@ -31,7 +31,7 @@ type LoginFormValues = {
 
 const roleDescriptions = {
     admin: 'Her şeyi yapabilir: silme işlemleri ve Admin Paneli (kullanıcı yönetimi) dahil.',
-    moderator: 'Müşteri, blog ve not ekleyip düzenleyebilir; silme yapamaz, Admin Paneli görmez.',
+    moderator: 'Müşteri, içerik ve not ekleyip düzenleyebilir; silme yapamaz, Admin Paneli görmez.',
 }
 
 // Left: demo accounts, right: login form. On phones the form comes first.
@@ -57,9 +57,8 @@ export default function LoginPageClient() {
                     </div>
                     <p className='text-primary-foreground/80'>
                         Uygulamayı denemek için aşağıdaki hesaplardan biriyle giriş yapabilirsiniz.
-                        REST API&apos;yi ({apiBasePath}) denemek için hesabın API token&apos;ını
-                        <code className='mx-1 font-mono'>Authorization: Bearer &lt;token&gt;</code>
-                        başlığıyla gönderin.
+                        REST API&apos;yi ({apiBasePath}) denemek için giriş yaptıktan sonra Profilim sayfasından
+                        kendi API token&apos;ınızı oluşturun; token yalnızca bir kez gösterilir.
                     </p>
                 </div>
 
@@ -86,11 +85,6 @@ export default function LoginPageClient() {
                                         <IoKey className='text-muted-foreground' aria-hidden />
                                         <dt className='sr-only'>Şifre</dt>
                                         <dd className='font-mono'>{account.password}</dd>
-                                    </div>
-                                    <div className='flex items-center gap-2' title={`REST API (${apiBasePath}) için Bearer token`}>
-                                        <IoCode className='shrink-0 text-muted-foreground' aria-hidden />
-                                        <dt className='sr-only'>API token</dt>
-                                        <dd className='font-mono break-all'>{account.apiToken}</dd>
                                     </div>
                                 </dl>
                                 <Button
