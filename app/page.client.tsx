@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
-import { IoCode, IoDocumentText, IoKey, IoLogoGithub, IoMail, IoShieldCheckmark } from 'react-icons/io5'
+import { IoCode, IoDocumentText, IoKey, IoLayers, IoLogoGithub, IoMail, IoShieldCheckmark } from 'react-icons/io5'
 import { toast } from 'sonner'
 import { login } from '@/actions/auth'
 import { useSiteContext } from '@/components/app/context/SiteContext'
@@ -19,6 +19,7 @@ import {
     githubApiDocsUrl,
     githubReadmeUrl,
     githubRepoUrl,
+    githubTechChoicesUrl,
     maxPasswordLength,
     minPasswordLength,
     userRoleLabels,
@@ -126,6 +127,14 @@ export default function LoginPageClient() {
                         className={buttonVariants({ variant: 'secondary' })}
                     >
                         <IoCode /> API Dokümanı
+                    </a>
+                    <a
+                        href={githubTechChoicesUrl}
+                        target='_blank'
+                        rel='noopener noreferrer'
+                        className={buttonVariants({ variant: 'secondary' })}
+                    >
+                        <IoLayers /> Kullanılan teknolojiler hakkında
                     </a>
                 </div>
             </section>

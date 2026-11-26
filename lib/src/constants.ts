@@ -202,3 +202,5 @@ export const apiBasePath = '/api/v1'
 export const githubRepoUrl = 'https://github.com/FlyingTurkman/crm-demo'
 export const githubReadmeUrl = 'https://github.com/FlyingTurkman/crm-demo/blob/HEAD/README.md'
 export const githubApiDocsUrl = 'https://github.com/FlyingTurkman/crm-demo/blob/HEAD/api.md'
+// The "Teknoloji Tercihleri" heading of the README (GitHub's heading anchor)
+export const githubTechChoicesUrl = `${githubReadmeUrl}#teknoloji-tercihleri`
