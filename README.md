@@ -531,15 +531,5 @@ Bu sürümden önce oluşturulmuş bir veritabanı kullanıyorsanız `npm run db
 
 ---
 
-## Tasarım tercihleri
-
-- **Alan modeli ajans iş akışına göre:** İçerik (`Post`) müşteriye teslim edilecek iştir. Bir hesap yöneticisinin her gün sorduğu soruları cevaplamak için türü, teslim günü ve sorumlusu var: "Ne gecikti, kimde, bu hafta ne teslim edilecek?" Dashboard'ın ilk satırı bu yüzden geciken ve yaklaşan işler.
-- **Tür ve kanal ayrı alanlar:** Tür içeriğin ne olduğunu (gönderi, blog yazısı, web sayfası), kanal nerede yayınlanacağını söyler. Aynı gönderi çoğu zaman birkaç kanala birden hazırlandığı için kanal çoklu seçimdir; blog yazısı da LinkedIn'de paylaşılabildiği için kanallar türe göre kısıtlanmaz.
-- **Yayın zamanı ile teslim tarihi ayrı:** Teslim tarihi içeriğin müşteriye hazır olması gereken gündür (gün bazında, gecikme bunun üzerinden hesaplanır). Yayın zamanı içeriğin kanalda paylaşılacağı tarih ve saattir; ajanda bunun üzerine kurulu. Ayrı bir randevu modeli eklemek yerine ajanda doğrudan içerikleri gösteriyor, çünkü hesap yöneticisinin takvimi zaten yayın planı.
-- **Gecikme kuralı:** Teslim günü bugünden önce olan ve durumu `Yayında` olmayan içerik gecikmiştir. Teslim tarihi saat değil gün olarak tutulur (sunucu saat diliminde günün başlangıcı); "bugün teslim" henüz gecikme sayılmaz.
-- **Sorumlu = sistem kullanıcısı:** Ayrı bir "ekip üyesi" modeli yerine mevcut `User` kullanıldı; istemciye sadece `PublicUserDto` alanları gider. Silinen bir kullanıcıya atanmış içerikler "sorumlu yok" olarak görünür.
-- **Görseller sunucu üzerinden yükleniyor:** Gerekçesi yukarıda, [Görseller (S3)](#görseller-s3) bölümünde.
-- **Adresler `/blogs` olarak kaldı:** Arayüzdeki bütün metinler "İçerik" oldu. URL'leri değiştirmek paylaşılmış linkleri ve API'yi bozacağı için adresler aynı bırakıldı.
-- **Demo API token'ları yayınlanmıyor:** Önceden giriş sayfasında yazıyordu. Artık her ziyaretçi kendi token'ını oluşturuyor; demo hesaplarda şifre ve oturumlar kilitli olduğu için kimse panelden dışarıda kalmıyor.
 
 
